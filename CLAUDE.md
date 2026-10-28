@@ -12,6 +12,7 @@
 - 1枚の皿に使える体の部位は1つだけで、システムがランダムに決めて指示役に伝える
 - 使ったスポンジは汚れて再利用できない → **部位は5枚の皿で重複しない**（5部位を5枚に1つずつ割り当てる）
 
+リポジトリ: https://github.com/usamimi39/dsih-game （public。名前は "dsih" だが、そのままにしている）
 デザイン: Figma `IeqczFMfF017XaAp2WIqsh`（https://www.figma.com/design/IeqczFMfF017XaAp2WIqsh ）
 - `9:4` タイトル画面（皿をきれいにするとゲームスタート）
 - `19:2` / `28:70` ゲーム背景（シンク）
@@ -91,7 +92,7 @@ pnpm cf-typegen   # wrangler.jsonc を変えたら必ず実行（worker-configur
 - [x] 1. 雛形（Vite + React + Worker）
 - [x] 2. ルームでつながる + マウスで汚れを消す MVP
 - [x] スポンジの色（1皿1色・再利用なし・ポインターに付いてくる丸）
-- [ ] GitHub に push（リポジトリの場所がまだ決まっていない。案: `usamimi39/dish-game` の private）
+- [x] GitHub に push
 - [ ] Cloudflare に初デプロイ（`dish.onnenai.cc` みたいなサブドメインを付ける）
 - [ ] 3. 色トラッキング `/calibrate`
   - getUserMedia → 320×180 に縮める → Web Worker で HSV に分けて5色を判別 → 色ごとに重心と面積を出す
