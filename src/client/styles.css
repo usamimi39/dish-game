@@ -1,0 +1,254 @@
+:root {
+	--bg: #fbf7ef;
+	--ink: #2b2b2b;
+	--sub: #8a8a8a;
+	--accent: #3b8fd9;
+	--muted: #e2e2e2;
+	--done: #5cbf7a;
+	font-family: system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
+	color: var(--ink);
+	background: var(--bg);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+}
+
+.button {
+	display: inline-block;
+	padding: 12px 24px;
+	border: none;
+	border-radius: 999px;
+	background: var(--accent);
+	color: #fff;
+	font: inherit;
+	font-weight: 700;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.button-sub {
+	background: var(--muted);
+	color: var(--ink);
+}
+
+/* ホーム */
+.home {
+	display: grid;
+	gap: 24px;
+	justify-items: center;
+	padding: 64px 16px;
+}
+
+.join {
+	display: flex;
+	gap: 8px;
+}
+
+.join input {
+	width: 8em;
+	padding: 12px;
+	border: 2px solid var(--muted);
+	border-radius: 12px;
+	font: inherit;
+	text-transform: uppercase;
+}
+
+/* プレイ画面（プロジェクター） */
+.screen {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2vh;
+	height: 100vh;
+	overflow: hidden;
+}
+
+.screen-title {
+	margin: 0;
+	font-size: 5vh;
+}
+
+.screen-join {
+	margin: 0;
+	color: var(--sub);
+	font-size: 2.2vh;
+}
+
+.dish {
+	position: relative;
+	width: min(78vh, 90vw);
+	aspect-ratio: 1;
+}
+
+.dish canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.hud {
+	position: absolute;
+	top: 3vh;
+	font-size: 4vh;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.1em;
+}
+
+.hud-left {
+	left: 3vw;
+}
+
+.hud-right {
+	right: 3vw;
+}
+
+.result {
+	text-align: center;
+	font-size: 4vh;
+}
+
+.result p {
+	margin: 0;
+}
+
+.result-time {
+	font-size: 14vh;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.result-actions {
+	display: flex;
+	gap: 16px;
+	justify-content: center;
+	margin-top: 4vh;
+}
+
+/* 指示役画面（スマホ） */
+.director {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	max-width: 480px;
+	min-height: 100vh;
+	margin: 0 auto;
+	padding: 24px 16px;
+}
+
+.director-title {
+	align-self: flex-start;
+	margin: 0;
+	font-size: 18px;
+}
+
+.director-wait {
+	margin-top: 40vh;
+	color: var(--sub);
+}
+
+.director-timer {
+	margin: 24px 0 0;
+	color: var(--sub);
+	font-size: 22px;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.2em;
+}
+
+.director-dish {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+}
+
+.dish-preview {
+	flex: 1;
+	min-width: 0;
+	aspect-ratio: 1;
+}
+
+.arrow {
+	padding: 8px;
+	border: none;
+	background: none;
+	color: var(--muted);
+	font-size: 32px;
+	cursor: pointer;
+}
+
+.director-number {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 32px;
+}
+
+.badge {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--accent);
+	color: #fff;
+	font-size: 12px;
+}
+
+.badge-done {
+	background: var(--done);
+}
+
+.parts {
+	display: flex;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 18px;
+}
+
+.part {
+	padding: 4px 8px;
+	border-radius: 4px;
+}
+
+.part-active {
+	background: var(--muted);
+	font-weight: 700;
+}
+
+.dots {
+	display: flex;
+	gap: 12px;
+	margin: 8px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.dot {
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	border: 2px solid var(--muted);
+	border-radius: 50%;
+	background: none;
+	cursor: pointer;
+}
+
+.dot-done {
+	border-color: var(--done);
+	background: var(--done);
+}
+
+.dot-view {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
