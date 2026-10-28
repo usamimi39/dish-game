@@ -10,12 +10,13 @@ type Props = {
 	seed: number;
 	kind: number;
 	spongeColor: string;
+	rimColor: string;
 	onProgress?: (remaining: number) => void;
 	onCleared: () => void;
 };
 
 // ポインターでなぞった所の汚れを消す皿。あとでマウスを色マーカーの位置に置き換える
-export function DishCanvas({ seed, kind, spongeColor, onProgress, onCleared }: Props) {
+export function DishCanvas({ seed, kind, spongeColor, rimColor, onProgress, onCleared }: Props) {
 	const plateRef = useRef<HTMLCanvasElement>(null);
 	const dirtRef = useRef<HTMLCanvasElement>(null);
 	const spongeRef = useRef<HTMLDivElement>(null);
@@ -29,7 +30,7 @@ export function DishCanvas({ seed, kind, spongeColor, onProgress, onCleared }: P
 		const ctx = dirt.getContext("2d", { willReadFrequently: true })!;
 		const pattern = createDirt(seed, kind);
 
-		drawPlate(plate.getContext("2d")!, SIZE, kind);
+		drawPlate(plate.getContext("2d")!, SIZE, rimColor);
 		ctx.clearRect(0, 0, SIZE, SIZE);
 		drawDirt(ctx, SIZE, pattern);
 		const initial = alphaSum(ctx);
@@ -92,7 +93,7 @@ export function DishCanvas({ seed, kind, spongeColor, onProgress, onCleared }: P
 			dirt.removeEventListener("pointermove", onMove);
 			dirt.removeEventListener("pointerleave", onLeave);
 		};
-	}, [seed, kind]);
+	}, [seed, kind, rimColor]);
 
 	return (
 		<div className="dish">

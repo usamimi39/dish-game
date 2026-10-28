@@ -25,6 +25,7 @@ export function Director({ room }: { room: string }) {
 	}
 
 	const dish = state.dishes[view];
+	const sponge = SPONGES[dish.sponge];
 	const move = (delta: number) => setView((v) => (v + delta + state.dishes.length) % state.dishes.length);
 
 	return (
@@ -36,14 +37,14 @@ export function Director({ room }: { room: string }) {
 				<button className="arrow" aria-label="前の皿" onClick={() => move(-1)}>
 					◀
 				</button>
-				<DishPreview seed={state.seed} kind={dish.kind} remaining={state.remaining[view]} />
+				<DishPreview seed={state.seed} kind={dish.kind} rimColor={sponge.pastel} remaining={state.remaining[view]} />
 				<button className="arrow" aria-label="次の皿" onClick={() => move(1)}>
 					▶
 				</button>
 			</div>
 
 			<p className="director-number">
-				<span className="sponge-chip" style={{ background: SPONGES[dish.sponge].color }} aria-label={SPONGES[dish.sponge].name} />
+				<span className="sponge-chip" style={{ background: sponge.color }} aria-label={sponge.name} />
 				{view + 1}皿目
 				{view === state.current && state.phase === "playing" && <span className="badge">いまここ</span>}
 				{state.remaining[view] === 0 && <span className="badge badge-done">キレイ</span>}
@@ -51,7 +52,7 @@ export function Director({ room }: { room: string }) {
 
 			<ul className="parts">
 				{BODY_PARTS.map((part) => (
-					<li key={part} className={part === dish.part ? "part part-active" : "part"}>
+					<li key={part} className={part === sponge.part ? "part part-active" : "part"}>
 						{BODY_PART_LABELS[part]}
 					</li>
 				))}

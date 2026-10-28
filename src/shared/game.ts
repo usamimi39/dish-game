@@ -11,34 +11,26 @@ export const BODY_PART_LABELS: Record<BodyPart, string> = {
 	leftFoot: "左足",
 };
 
-// 皿の種類。並び順がそのまま難易度（0 が一番簡単）
-export const DISH_KINDS = [
-	{ name: "green", rim: "#7ed99a" },
-	{ name: "blue", rim: "#6cc6e6" },
-	{ name: "purple", rim: "#a35de0" },
-	{ name: "pink", rim: "#e3a6e6" },
-	{ name: "red", rim: "#e0484e" },
-] as const;
-
-export const DISH_COUNT = DISH_KINDS.length;
-
-// スポンジの色（Figma の Frame 4）。used は使い終わったときの色（Frame 5）
-// 1枚の皿に1色。一度使った色はもう使えない。将来は色と体の部位を対応させる予定で、今は部位とは別にシャッフルしている
+// スポンジ = 体の部位に付けるマーカー。色と部位は固定で対応している
+// color: Figma の Frame 4 / used: 使い終わった色（Frame 5）/ pastel: 皿の縁取り（color に白を 55% 混ぜた色）
+// 1枚の皿に1色。一度使った色はもう使えない
 export const SPONGES = [
-	{ name: "red", color: "#ff0000", used: "#8b0000" },
-	{ name: "purple", color: "#9500ff", used: "#48007c" },
-	{ name: "blue", color: "#0d00ff", used: "#06007e" },
-	{ name: "green", color: "#26ff00", used: "#137a01" },
-	{ name: "yellow", color: "#ffe600", used: "#7f7200" },
-] as const;
+	{ name: "red", part: "head", color: "#ff0000", used: "#8b0000", pastel: "#ff8c8c" },
+	{ name: "purple", part: "rightHand", color: "#9500ff", used: "#48007c", pastel: "#cf8cff" },
+	{ name: "blue", part: "leftHand", color: "#0d00ff", used: "#06007e", pastel: "#928cff" },
+	{ name: "green", part: "rightFoot", color: "#26ff00", used: "#137a01", pastel: "#9dff8c" },
+	{ name: "yellow", part: "leftFoot", color: "#ffe600", used: "#7f7200", pastel: "#fff48c" },
+] as const satisfies readonly { name: string; part: BodyPart; color: string; used: string; pastel: string }[];
+
+export const DISH_COUNT = SPONGES.length;
 
 // 汚れの残りがこの割合を下回ったらきれいになったとみなす
 export const CLEAR_THRESHOLD = 0.03;
 
 export type Dish = {
+	// 汚れの種類。数字がそのまま難易度（0 が一番簡単）
 	kind: number;
-	part: BodyPart;
-	// SPONGES の番号
+	// SPONGES の番号。使う部位と皿の縁の色もここで決まる
 	sponge: number;
 };
 
@@ -84,18 +76,12 @@ export function initialState(seed = randomSeed()): RoomState {
 	};
 }
 
-// 皿の順番・使う部位・スポンジの色はゲームごとにランダム。部位と色はどれも重複しない
+// 皿の順番と使うスポンジ（= 部位）はゲームごとにランダム。スポンジは重複しない
 export function createDishes(random: () => number = Math.random): Dish[] {
-	const kinds = shuffle(
-		DISH_KINDS.map((_, i) => i),
-		random,
-	);
-	const parts = shuffle([...BODY_PARTS], random);
-	const sponges = shuffle(
-		SPONGES.map((_, i) => i),
-		random,
-	);
-	return kinds.map((kind, i) => ({ kind, part: parts[i], sponge: sponges[i] }));
+	const indices = () => Array.from({ length: DISH_COUNT }, (_, i) => i);
+	const kinds = shuffle(indices(), random);
+	const sponges = shuffle(indices(), random);
+	return kinds.map((kind, i) => ({ kind, sponge: sponges[i] }));
 }
 
 export type DirtBlob = { x: number; y: number; r: number };

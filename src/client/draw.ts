@@ -1,16 +1,16 @@
-import { DISH_KINDS, type DirtPattern } from "../shared/game";
+import type { DirtPattern } from "../shared/game";
 
 // 皿の内側（汚れが付く範囲）の半径。皿全体の半径に対する割合
 const INNER = 0.8;
 
-export function drawPlate(ctx: CanvasRenderingContext2D, size: number, kind: number) {
+export function drawPlate(ctx: CanvasRenderingContext2D, size: number, rim: string) {
 	const c = size / 2;
 	const r = c * 0.98;
 	ctx.clearRect(0, 0, size, size);
 	circle(ctx, c, c, r);
-	ctx.fillStyle = DISH_KINDS[kind].rim;
+	ctx.fillStyle = rim;
 	ctx.fill();
-	circle(ctx, c, c, r * 0.93);
+	circle(ctx, c, c, r * 0.9);
 	ctx.fillStyle = "#ffffff";
 	ctx.fill();
 	circle(ctx, c, c, r * INNER);
