@@ -296,3 +296,174 @@ body {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
 }
+
+.button-small {
+	padding: 6px 12px;
+	font-size: 13px;
+}
+
+.home-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: center;
+}
+
+.camera-status {
+	position: absolute;
+	bottom: 10vh;
+	margin: 0;
+	padding: 8px 16px;
+	border-radius: 8px;
+	background: var(--ink);
+	color: #fff;
+}
+
+/* カメラの調整 */
+.calibrate {
+	display: grid;
+	grid-template-columns: 1fr 380px;
+	gap: 24px;
+	min-height: 100vh;
+	padding: 24px;
+}
+
+.calibrate-view {
+	min-width: 0;
+}
+
+.stage {
+	position: relative;
+	overflow: hidden;
+	aspect-ratio: 16 / 9;
+	border-radius: 12px;
+	background: #222;
+}
+
+.stage video,
+.stage-overlay {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	/* Worker には 320×180 に引き伸ばして渡しているので、表示も同じように引き伸ばす */
+	object-fit: fill;
+}
+
+.stage-overlay {
+	image-rendering: pixelated;
+}
+
+.stage-mirror video,
+.stage-mirror .stage-overlay {
+	transform: scaleX(-1);
+}
+
+.stage-picking {
+	cursor: crosshair;
+	outline: 4px solid var(--accent);
+}
+
+.stage-status {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	margin: 0;
+	color: #fff;
+}
+
+.calibrate-hint {
+	color: var(--sub);
+}
+
+.calibrate-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.calibrate-panel h1 {
+	margin: 0;
+	font-size: 20px;
+}
+
+.calibrate-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.field {
+	display: grid;
+	gap: 4px;
+	font-size: 14px;
+}
+
+.field select {
+	padding: 8px;
+	font: inherit;
+}
+
+.check {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	font-size: 14px;
+}
+
+.ranges {
+	display: grid;
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.range {
+	display: grid;
+	gap: 4px;
+	padding: 12px;
+	border-radius: 12px;
+	background: #fff;
+}
+
+.range-head {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	font-size: 14px;
+}
+
+.range-head .button {
+	margin-left: auto;
+}
+
+.range-found {
+	color: var(--done);
+	font-size: 12px;
+}
+
+.range-lost {
+	color: var(--sub);
+	font-size: 12px;
+}
+
+.slider {
+	display: grid;
+	grid-template-columns: 6em 1fr 3em;
+	gap: 8px;
+	align-items: center;
+	font-size: 12px;
+}
+
+.slider output {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+	.calibrate {
+		grid-template-columns: 1fr;
+		padding: 16px;
+	}
+}
