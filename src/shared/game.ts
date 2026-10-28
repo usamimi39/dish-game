@@ -22,12 +22,24 @@ export const DISH_KINDS = [
 
 export const DISH_COUNT = DISH_KINDS.length;
 
+// スポンジの色（Figma の Frame 4）。used は使い終わったときの色（Frame 5）
+// 1枚の皿に1色。一度使った色はもう使えない。将来は色と体の部位を対応させる予定で、今は部位とは別にシャッフルしている
+export const SPONGES = [
+	{ name: "red", color: "#ff0000", used: "#8b0000" },
+	{ name: "purple", color: "#9500ff", used: "#48007c" },
+	{ name: "blue", color: "#0d00ff", used: "#06007e" },
+	{ name: "green", color: "#26ff00", used: "#137a01" },
+	{ name: "yellow", color: "#ffe600", used: "#7f7200" },
+] as const;
+
 // 汚れの残りがこの割合を下回ったらきれいになったとみなす
 export const CLEAR_THRESHOLD = 0.03;
 
 export type Dish = {
 	kind: number;
 	part: BodyPart;
+	// SPONGES の番号
+	sponge: number;
 };
 
 export type GamePhase = "lobby" | "playing" | "finished";
@@ -72,14 +84,18 @@ export function initialState(seed = randomSeed()): RoomState {
 	};
 }
 
-// 皿の順番と使う部位はゲームごとにランダム。部位はスポンジを使い回せないので重複しない
+// 皿の順番・使う部位・スポンジの色はゲームごとにランダム。部位と色はどれも重複しない
 export function createDishes(random: () => number = Math.random): Dish[] {
 	const kinds = shuffle(
 		DISH_KINDS.map((_, i) => i),
 		random,
 	);
 	const parts = shuffle([...BODY_PARTS], random);
-	return kinds.map((kind, i) => ({ kind, part: parts[i] }));
+	const sponges = shuffle(
+		SPONGES.map((_, i) => i),
+		random,
+	);
+	return kinds.map((kind, i) => ({ kind, part: parts[i], sponge: sponges[i] }));
 }
 
 export type DirtBlob = { x: number; y: number; r: number };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BODY_PART_LABELS, BODY_PARTS } from "../shared/game";
+import { BODY_PART_LABELS, BODY_PARTS, SPONGES } from "../shared/game";
 import { DishPreview } from "./DishPreview";
 import { formatTime, useElapsed, useRoom } from "./useRoom";
 
@@ -43,6 +43,7 @@ export function Director({ room }: { room: string }) {
 			</div>
 
 			<p className="director-number">
+				<span className="sponge-chip" style={{ background: SPONGES[dish.sponge].color }} aria-label={SPONGES[dish.sponge].name} />
 				{view + 1}皿目
 				{view === state.current && state.phase === "playing" && <span className="badge">いまここ</span>}
 				{state.remaining[view] === 0 && <span className="badge badge-done">キレイ</span>}

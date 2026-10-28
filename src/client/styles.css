@@ -95,6 +95,50 @@ body {
 	height: 100%;
 }
 
+.dish:has(.sponge) {
+	cursor: none;
+}
+
+/* ポインターについてくるスポンジ */
+.sponge {
+	position: absolute;
+	aspect-ratio: 1;
+	border: 3px solid rgb(0 0 0 / 0.25);
+	border-radius: 50%;
+	transform: translate(-50%, -50%);
+	opacity: 0.85;
+	pointer-events: none;
+}
+
+.sponge-tray {
+	position: absolute;
+	bottom: 3vh;
+	left: 50%;
+	display: flex;
+	gap: 1.5vh;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	transform: translateX(-50%);
+}
+
+.sponge-slot {
+	width: 5vh;
+	height: 5vh;
+	border-radius: 50%;
+}
+
+.sponge-slot-current {
+	outline: 0.6vh solid var(--ink);
+	outline-offset: 0.5vh;
+}
+
+.sponge-chip {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+}
+
 .hud {
 	position: absolute;
 	top: 3vh;

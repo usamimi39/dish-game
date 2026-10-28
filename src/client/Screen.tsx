@@ -1,5 +1,10 @@
+import { SPONGES } from "../shared/game";
 import { DishCanvas } from "./DishCanvas";
+import { SpongeTray } from "./SpongeTray";
 import { formatTime, useElapsed, useRoom } from "./useRoom";
+
+// 練習用の皿はスポンジを消費しないので、どの色でもない灰色にする
+const PRACTICE_SPONGE = "#bdbdbd";
 
 // プロジェクターに映すプレイ画面
 export function Screen({ room }: { room: string }) {
@@ -16,7 +21,7 @@ export function Screen({ room }: { room: string }) {
 				<>
 					<h1 className="screen-title">きれいにしてゲームスタート！</h1>
 					{/* 練習用の皿。きれいにするとゲームが始まる */}
-					<DishCanvas key={`lobby-${state.seed}`} seed={state.seed + 1} kind={0} onCleared={() => send({ type: "start" })} />
+					<DishCanvas key={`lobby-${state.seed}`} seed={state.seed + 1} kind={0} spongeColor={PRACTICE_SPONGE} onCleared={() => send({ type: "start" })} />
 					<p className="screen-join">
 						指示役は <strong>{directorUrl}</strong> をひらいてね（ルーム {room}）
 					</p>
@@ -31,9 +36,11 @@ export function Screen({ room }: { room: string }) {
 						key={`dish-${state.current}`}
 						seed={state.seed}
 						kind={state.dishes[state.current].kind}
+						spongeColor={SPONGES[state.dishes[state.current].sponge].color}
 						onProgress={(remaining) => send({ type: "progress", remaining })}
 						onCleared={() => send({ type: "cleared" })}
 					/>
+					<SpongeTray dishes={state.dishes} current={state.current} />
 				</>
 			)}
 

@@ -47,6 +47,7 @@ src/
    ├─ Director.tsx  # 指示役スマホの「皿一覧」
    ├─ DishCanvas.tsx   # 汚れを消せる皿（今はポインターで消す）
    ├─ DishPreview.tsx  # 指示役用の皿サムネイル
+   ├─ SpongeTray.tsx   # プレイ画面下のスポンジ5色（使い終わった色は暗くなる）
    ├─ draw.ts       # 皿と汚れの描画
    └─ useRoom.ts    # WebSocket 接続・サーバーとの時計合わせ・タイマー
 ```
@@ -57,6 +58,7 @@ src/
 - プレイ画面が送るもの: `start` / `progress`（今の皿の汚れの残り。200ms ごと）/ `cleared` / `next`（同じ汚れで次のチームへ）/ `reset`（汚れを作り直す）
 - 指示役画面は表示するだけで、何も送らない
 - `seed` は `reset` するまで変わらない。汚れは `createDirt(seed, kind)` で決まるので、2チームが同じ汚れで遊べる。皿の順番と部位は `start` のたびにシャッフルする
+- スポンジの色は Figma の Frame 4（`37:2`）の5色。使い終わった色は Frame 5（`37:3`）の暗い色で表示する。1枚の皿に1色で、ゲームごとにシャッフルして順番に使う。ポインターにはその色の丸が付いてくる。今は色と部位は別々にシャッフルしているが、将来は色と部位を対応させる（マーカーの色 = 部位）
 - 汚れの量は描画した canvas のアルファ値の合計で測る。`CLEAR_THRESHOLD`（3%）を下回ったら `cleared`
 - 皿の種類の番号（`kind` 0〜4）がそのまま難易度。番号が大きいほど汚れが多くて、`toughness` も高い（こすれる量が `0.5 / toughness` になる）
 - タイマーはサーバーの `startedAt` / `finishedAt` と、`now` から求めた時計のずれで計算する。なので画面ごとにずれない
@@ -85,6 +87,7 @@ pnpm cf-typegen   # wrangler.jsonc を変えたら必ず実行（worker-configur
 
 - [x] 1. 雛形（Vite + React + Worker）
 - [x] 2. ルームでつながる + マウスで汚れを消す MVP
+- [x] スポンジの色（1皿1色・再利用なし・ポインターに付いてくる丸）
 - [ ] GitHub に push（リポジトリの場所がまだ決まっていない。案: `usamimi39/dish-game` の private）
 - [ ] Cloudflare に初デプロイ（`dish.onnenai.cc` みたいなサブドメインを付ける）
 - [ ] 3. 色トラッキング `/calibrate`
@@ -101,6 +104,6 @@ pnpm cf-typegen   # wrangler.jsonc を変えたら必ず実行（worker-configur
 ## まだ決めていないこと
 
 - タイトル（Figma の「タイトル案」から選ぶ）
-- マーカーの5色（Figma にある5色セットが候補）
+- 色と部位の対応（マーカーの5色はスポンジの色 `SPONGES` に合わせる予定）
 - 部位を間違えて拭いたときのペナルティ（今はそもそも判定していない）
 - 歴代ランキングを出すか（出すなら D1 を足す）

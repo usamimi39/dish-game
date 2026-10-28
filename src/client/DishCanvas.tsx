@@ -9,20 +9,23 @@ const PROGRESS_INTERVAL_MS = 200;
 type Props = {
 	seed: number;
 	kind: number;
+	spongeColor: string;
 	onProgress?: (remaining: number) => void;
 	onCleared: () => void;
 };
 
 // ポインターでなぞった所の汚れを消す皿。あとでマウスを色マーカーの位置に置き換える
-export function DishCanvas({ seed, kind, onProgress, onCleared }: Props) {
+export function DishCanvas({ seed, kind, spongeColor, onProgress, onCleared }: Props) {
 	const plateRef = useRef<HTMLCanvasElement>(null);
 	const dirtRef = useRef<HTMLCanvasElement>(null);
+	const spongeRef = useRef<HTMLDivElement>(null);
 	const callbacks = useRef({ onProgress, onCleared });
 	callbacks.current = { onProgress, onCleared };
 
 	useEffect(() => {
 		const plate = plateRef.current!;
 		const dirt = dirtRef.current!;
+		const sponge = spongeRef.current!;
 		const ctx = dirt.getContext("2d", { willReadFrequently: true })!;
 		const pattern = createDirt(seed, kind);
 
@@ -47,6 +50,10 @@ export function DishCanvas({ seed, kind, onProgress, onCleared }: Props) {
 
 		const onMove = (e: PointerEvent) => {
 			const point = toCanvas(e);
+			// 再レンダーせずに動かしたいので、スタイルを直接書き換える
+			sponge.style.left = `${(point.x / SIZE) * 100}%`;
+			sponge.style.top = `${(point.y / SIZE) * 100}%`;
+			sponge.hidden = false;
 			if (last) {
 				ctx.save();
 				ctx.globalCompositeOperation = "destination-out";
@@ -64,6 +71,7 @@ export function DishCanvas({ seed, kind, onProgress, onCleared }: Props) {
 		};
 		const onLeave = () => {
 			last = null;
+			sponge.hidden = true;
 		};
 
 		const timer = setInterval(() => {
@@ -90,6 +98,12 @@ export function DishCanvas({ seed, kind, onProgress, onCleared }: Props) {
 		<div className="dish">
 			<canvas ref={plateRef} width={SIZE} height={SIZE} />
 			<canvas ref={dirtRef} width={SIZE} height={SIZE} />
+			<div
+				ref={spongeRef}
+				className="sponge"
+				hidden
+				style={{ width: `${(SPONGE_WIDTH / SIZE) * 100}%`, background: spongeColor }}
+			/>
 		</div>
 	);
 }
