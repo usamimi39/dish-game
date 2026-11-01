@@ -1,13 +1,13 @@
-import { SPONGES } from "../shared/game";
+import { type DirtSpec, SPONGES, usedSponges } from "../shared/game";
 import { DishCanvas, type DishInput } from "./DishCanvas";
 import { SpongeTray } from "./SpongeTray";
 import { getSettings } from "./tracking/settings";
 import { useTracker } from "./tracking/useTracker";
-import { formatTime, useElapsed, useRoom } from "./useRoom";
+import { formatTime, useCountdown, useElapsed, useRoom } from "./useRoom";
 
-// 練習用の皿はスポンジを消費しないので、どの色でもない灰色にする
+// 練習用の皿。スポンジを消費しないので、どの色でもない灰色で消す
+const PRACTICE_DIRT: DirtSpec = { seed: 1, spread: 0, distance: 0, rotation: 0 };
 const PRACTICE_SPONGE = "#bdbdbd";
-const PRACTICE_RIM = "#e0e0e0";
 
 // URL に ?input=camera を付けるとカメラのマーカーで遊ぶ。付けなければマウス
 const cameraMode = new URLSearchParams(location.search).get("input") === "camera";
@@ -16,30 +16,36 @@ const cameraMode = new URLSearchParams(location.search).get("input") === "camera
 export function Screen({ room }: { room: string }) {
 	const { state, send, serverNow } = useRoom(room);
 	const elapsed = useElapsed(state, serverNow);
+	const setupLeft = useCountdown(state?.phase === "setup" ? state.setupEndsAt : null, serverNow);
 	const { tracker, error: cameraError } = useTracker(cameraMode, getSettings().deviceId);
 
 	if (!state) return <main className="screen">接続中…</main>;
 
-	const inputFor = (sponge: number | "any"): DishInput =>
-		tracker ? { type: "camera", tracker, sponge } : { type: "mouse" };
+	// マウスモードでは、マウスが「指示役が選んだ部位」の代わりになる
+	const inputFor = (sponge: number | "any" | null): DishInput => {
+		if (sponge === null) return { type: "none" };
+		return tracker ? { type: "camera", tracker, sponge } : { type: "mouse" };
+	};
 
 	const directorUrl = `${location.origin}/director/${room}`;
+	const dish = state.dishes[state.current];
+	// 今の皿の色は終わるまで暗くしない（どの部位か分かってしまうので）
+	const used = usedSponges(state.dishes.slice(0, state.current));
 
 	return (
 		<main className="screen">
 			{cameraMode && !tracker && (
 				<p className="camera-status">{cameraError ? `カメラが使えません: ${cameraError}` : "カメラを準備中…"}</p>
 			)}
+
 			{state.phase === "lobby" && (
 				<>
 					<h1 className="screen-title">きれいにしてゲームスタート！</h1>
-					{/* 練習用の皿。きれいにするとゲームが始まる */}
+					{/* 練習用の皿。きれいにするとセッティングが始まる */}
 					<DishCanvas
-						key={`lobby-${state.seed}`}
-						seed={state.seed + 1}
-						kind={0}
+						key="lobby"
+						dirt={PRACTICE_DIRT}
 						spongeColor={PRACTICE_SPONGE}
-						rimColor={PRACTICE_RIM}
 						input={inputFor("any")}
 						onCleared={() => send({ type: "start" })}
 					/>
@@ -49,21 +55,28 @@ export function Screen({ room }: { room: string }) {
 				</>
 			)}
 
-			{state.phase === "playing" && (
+			{state.phase === "setup" && (
+				// 実行役には皿を見せない
+				<div className="setup-wait">
+					<p>指示役がお皿をセッティング中…</p>
+					<p className="setup-count">{Math.ceil(setupLeft / 1000)}</p>
+				</div>
+			)}
+
+			{state.phase === "playing" && dish && (
 				<>
 					<div className="hud hud-left">{formatTime(elapsed)}</div>
 					<div className="hud hud-right">{state.current + 1}枚目</div>
 					<DishCanvas
 						key={`dish-${state.current}`}
-						seed={state.seed}
-						kind={state.dishes[state.current].kind}
-						spongeColor={SPONGES[state.dishes[state.current].sponge].color}
-						rimColor={SPONGES[state.dishes[state.current].sponge].pastel}
-						input={inputFor(state.dishes[state.current].sponge)}
+						dirt={dish}
+						spongeColor={dish.sponge === null ? PRACTICE_SPONGE : SPONGES[dish.sponge].color}
+						input={inputFor(dish.sponge)}
 						onProgress={(remaining) => send({ type: "progress", remaining })}
 						onCleared={() => send({ type: "cleared" })}
 					/>
-					<SpongeTray dishes={state.dishes} current={state.current} />
+					{dish.sponge === null && <p className="screen-waiting">指示役の指示を待っています…</p>}
+					<SpongeTray used={used} />
 				</>
 			)}
 
@@ -72,11 +85,8 @@ export function Screen({ room }: { room: string }) {
 					<p>ぜんぶキレイ！</p>
 					<p className="result-time">{formatTime(elapsed)}</p>
 					<div className="result-actions">
-						<button className="button" onClick={() => send({ type: "next" })}>
+						<button className="button" onClick={() => send({ type: "reset" })}>
 							次のチームへ
-						</button>
-						<button className="button button-sub" onClick={() => send({ type: "reset" })}>
-							新しい試合
 						</button>
 					</div>
 				</div>

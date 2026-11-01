@@ -23,21 +23,30 @@ export function useRoom(room: string) {
 	return { state, send, serverNow };
 }
 
-export function useElapsed(state: RoomState | null, serverNow: () => number): number {
+// active の間、毎フレーム描き直す
+function useAnimationFrame(active: boolean) {
 	const [, setTick] = useState(0);
-	const running = state?.phase === "playing";
 
 	useEffect(() => {
-		if (!running) return;
+		if (!active) return;
 		let frame = requestAnimationFrame(function loop() {
 			setTick((t) => t + 1);
 			frame = requestAnimationFrame(loop);
 		});
 		return () => cancelAnimationFrame(frame);
-	}, [running]);
+	}, [active]);
+}
 
+export function useElapsed(state: RoomState | null, serverNow: () => number): number {
+	useAnimationFrame(state?.phase === "playing");
 	if (!state?.startedAt) return 0;
 	return (state.finishedAt ?? serverNow()) - state.startedAt;
+}
+
+// endsAt までの残りミリ秒
+export function useCountdown(endsAt: number | null, serverNow: () => number): number {
+	useAnimationFrame(endsAt !== null);
+	return endsAt === null ? 0 : Math.max(0, endsAt - serverNow());
 }
 
 export function formatTime(ms: number): string {

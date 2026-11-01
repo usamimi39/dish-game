@@ -95,7 +95,7 @@ body {
 	height: 100%;
 }
 
-.dish:has(.sponge) {
+.dish-mouse {
 	cursor: none;
 }
 
@@ -128,10 +128,6 @@ body {
 	border-radius: 50%;
 }
 
-.sponge-slot-current {
-	outline: 0.6vh solid var(--ink);
-	outline-offset: 0.5vh;
-}
 
 .sponge-chip {
 	width: 20px;
@@ -252,6 +248,8 @@ body {
 
 .parts {
 	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
 	gap: 6px;
 	margin: 0;
 	padding: 0;
@@ -466,4 +464,125 @@ body {
 		grid-template-columns: 1fr;
 		padding: 16px;
 	}
+}
+
+/* セッティング */
+.setup-wait {
+	text-align: center;
+	font-size: 4vh;
+}
+
+.setup-wait p {
+	margin: 0;
+}
+
+.setup-count {
+	font-size: 20vh;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.screen-waiting {
+	position: absolute;
+	top: 50%;
+	margin: 0;
+	padding: 1vh 3vh;
+	border-radius: 999px;
+	background: rgb(43 43 43 / 0.8);
+	color: #fff;
+	font-size: 3vh;
+	transform: translateY(-50%);
+	pointer-events: none;
+}
+
+.director-countdown {
+	margin: 0;
+	font-size: 40px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.setup-list {
+	display: grid;
+	gap: 8px;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.setup-item {
+	display: grid;
+	grid-template-columns: 2.5em 1fr auto;
+	gap: 12px;
+	align-items: center;
+	padding: 6px 12px;
+	border-radius: 12px;
+	background: #fff;
+}
+
+.setup-number {
+	font-weight: 700;
+}
+
+.setup-preview {
+	width: 104px;
+	aspect-ratio: 1;
+	justify-self: center;
+}
+
+.rotate-buttons {
+	display: flex;
+	gap: 8px;
+}
+
+.rotate {
+	width: 52px;
+	height: 52px;
+	border: none;
+	border-radius: 50%;
+	background: var(--muted);
+	color: var(--ink);
+	font-size: 26px;
+	cursor: pointer;
+}
+
+.rotate:active {
+	background: var(--accent);
+	color: #fff;
+}
+
+.part-button {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+	padding: 6px 10px;
+	border: 2px solid var(--muted);
+	border-radius: 999px;
+	background: #fff;
+	color: var(--ink);
+	font: inherit;
+	font-size: 16px;
+	cursor: pointer;
+}
+
+.part-button:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+.part-button-active {
+	border-color: var(--ink);
+	font-weight: 700;
+}
+
+/* 選んだ部位は、ターンが終わっても薄くしない */
+.part-button-active:disabled {
+	opacity: 1;
+}
+
+.director-hint {
+	margin: 0;
+	color: var(--sub);
+	font-size: 14px;
 }

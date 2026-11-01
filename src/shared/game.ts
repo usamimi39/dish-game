@@ -12,8 +12,8 @@ export const BODY_PART_LABELS: Record<BodyPart, string> = {
 };
 
 // スポンジ = 体の部位に付けるマーカー。色と部位は固定で対応している
-// color: Figma の Frame 4 / used: 使い終わった色（Frame 5）/ pastel: 皿の縁取り（color に白を 55% 混ぜた色）
-// 1枚の皿に1色。一度使った色はもう使えない
+// color: Figma の Frame 4 / used: 使い終わった色（Frame 5）/ pastel: color に白を 55% 混ぜた色（今は使っていない。皿の縁取りの候補）
+// 5ターンでどの部位も1回ずつしか使えない
 export const SPONGES = [
 	{ name: "red", part: "head", color: "#ff0000", used: "#8b0000", pastel: "#ff8c8c" },
 	{ name: "purple", part: "rightHand", color: "#9500ff", used: "#48007c", pastel: "#cf8cff" },
@@ -27,61 +27,84 @@ export const DISH_COUNT = SPONGES.length;
 // 汚れの残りがこの割合を下回ったらきれいになったとみなす
 export const CLEAR_THRESHOLD = 0.03;
 
+// 指示役が皿を回せる時間。時間切れでその時の向きに決まる
+export const SETUP_SECONDS = 30;
+
+// 汚れは「拡散度 3 段階 × 中心からの距離 3 段階」の 9 パターン。そこから 5 つを選んで使う
+export const SPREAD_LEVELS = 3;
+export const DISTANCE_LEVELS = 3;
+
 export type Dish = {
-	// 汚れの種類。数字がそのまま難易度（0 が一番簡単）
-	kind: number;
-	// SPONGES の番号。使う部位と皿の縁の色もここで決まる
-	sponge: number;
+	// 拡散度（0 = 1か所にまとまっている … 2 = ばらばら）
+	spread: number;
+	// 汚れのかたまりが皿の中心からどれだけ離れているか（0 = 中心 … 2 = 縁）
+	distance: number;
+	// 汚れの細かい形を決める seed
+	seed: number;
+	// 時計回りに 90° を何回まわしたか（0〜3）。指示役がセッティングで変える
+	rotation: number;
+	// このターンに指示役が選んだスポンジ（= 部位）。選ばれるまでは null で、汚れは消せない
+	sponge: number | null;
 };
 
-export type GamePhase = "lobby" | "playing" | "finished";
+// lobby → setup（指示役が皿を回す）→ playing（5ターン）→ finished
+export type GamePhase = "lobby" | "setup" | "playing" | "finished";
 
 export type RoomState = {
 	phase: GamePhase;
-	// 汚れのパターンを決める seed。リセットするまで変わらないので、2チームが同じ汚れで遊べる
-	seed: number;
 	// 出てくる順に並んだ皿
 	dishes: Dish[];
 	current: number;
 	// 皿ごとの汚れの残り（1 = 最初のまま、0 = きれい）。dishes と同じ順番
 	remaining: number[];
+	setupEndsAt: number | null;
 	startedAt: number | null;
 	finishedAt: number | null;
 };
 
 export type ClientMessage =
+	// プレイ画面から
 	| { type: "start" }
 	| { type: "progress"; remaining: number }
 	| { type: "cleared" }
-	// 同じ汚れのまま次のチームへ
-	| { type: "next" }
-	// 汚れを作り直して新しい試合へ
-	| { type: "reset" };
+	| { type: "reset" }
+	// 指示役から
+	| { type: "rotate"; dish: number; direction: 1 | -1 }
+	| { type: "choose"; sponge: number };
 
 export type ServerMessage = { type: "state"; state: RoomState; now: number };
 
-export function randomSeed(): number {
-	return Math.floor(Math.random() * 2 ** 32);
-}
-
-export function initialState(seed = randomSeed()): RoomState {
+export function initialState(): RoomState {
 	return {
 		phase: "lobby",
-		seed,
 		dishes: [],
 		current: 0,
 		remaining: [],
+		setupEndsAt: null,
 		startedAt: null,
 		finishedAt: null,
 	};
 }
 
-// 皿の順番と使うスポンジ（= 部位）はゲームごとにランダム。スポンジは重複しない
+// 9 パターンから 5 つ選ぶ。順番も初期の向きもランダム。チームごとに作り直すので、2チームで違う皿になる
 export function createDishes(random: () => number = Math.random): Dish[] {
-	const indices = () => Array.from({ length: DISH_COUNT }, (_, i) => i);
-	const kinds = shuffle(indices(), random);
-	const sponges = shuffle(indices(), random);
-	return kinds.map((kind, i) => ({ kind, sponge: sponges[i] }));
+	const types: { spread: number; distance: number }[] = [];
+	for (let spread = 0; spread < SPREAD_LEVELS; spread++) {
+		for (let distance = 0; distance < DISTANCE_LEVELS; distance++) types.push({ spread, distance });
+	}
+	return shuffle(types, random)
+		.slice(0, DISH_COUNT)
+		.map((type) => ({
+			...type,
+			seed: Math.floor(random() * 2 ** 32),
+			rotation: Math.floor(random() * 4),
+			sponge: null,
+		}));
+}
+
+// このゲームでもう使ったスポンジ
+export function usedSponges(dishes: Dish[]): Set<number> {
+	return new Set(dishes.flatMap((dish) => (dish.sponge === null ? [] : [dish.sponge])));
 }
 
 export type DirtBlob = { x: number; y: number; r: number };
@@ -92,29 +115,61 @@ export type DirtPattern = {
 	toughness: number;
 };
 
-// 皿の中心を原点、半径を 1 とした座標で汚れを作る。seed と皿の種類が同じなら必ず同じ形になる
-export function createDirt(seed: number, kind: number): DirtPattern {
-	const random = mulberry32(seed + kind * 7919);
-	const difficulty = kind + 1;
+export type DirtSpec = Pick<Dish, "seed" | "spread" | "distance" | "rotation">;
+
+// 拡散度ごとの「汚れが散らばる半径」「かたまりの数」「かたまりの大きさ」
+const SPREADS = [
+	{ radius: 0.08, count: 3, size: [0.14, 0.2] },
+	{ radius: 0.22, count: 6, size: [0.08, 0.13] },
+	{ radius: 0.4, count: 11, size: [0.05, 0.08] },
+] as const;
+
+// 距離ごとの、汚れ全体の中心と皿の中心との距離
+const DISTANCES = [0, 0.38, 0.62];
+
+// 皿の中心を原点、内側の半径を 1、下向きを y+ とした座標で汚れを作る。同じ spec なら必ず同じ形になる
+// 回転 0 のとき、中心から離れた汚れは皿の上側に寄る
+export function createDirt({ seed, spread, distance, rotation }: DirtSpec): DirtPattern {
+	const random = mulberry32(seed);
+	const { radius, count, size } = SPREADS[spread];
+	// 真上から少しだけずらして、毎回同じ見た目にならないようにする
+	const angle = -Math.PI / 2 + (random() - 0.5) * 0.5;
+	const cx = Math.cos(angle) * DISTANCES[distance];
+	const cy = Math.sin(angle) * DISTANCES[distance];
+
 	const blobs: DirtBlob[] = [];
-	for (let i = 0; i < 1 + difficulty; i++) {
-		const angle = random() * Math.PI * 2;
-		const dist = random() * 0.55;
-		const cx = Math.cos(angle) * dist;
-		const cy = Math.sin(angle) * dist;
-		const r = 0.08 + random() * 0.08;
-		blobs.push({ x: cx, y: cy, r });
-		// 周りに小さい粒をくっつけて、まん丸じゃない汚れにする
-		for (let j = 0; j < 4; j++) {
-			const a = random() * Math.PI * 2;
-			blobs.push({
-				x: cx + Math.cos(a) * r * 0.8,
-				y: cy + Math.sin(a) * r * 0.8,
-				r: r * (0.3 + random() * 0.4),
-			});
-		}
+	for (let i = 0; i < count; i++) {
+		const a = random() * Math.PI * 2;
+		const d = Math.sqrt(random()) * radius;
+		const r = size[0] + random() * (size[1] - size[0]);
+		blobs.push(...lump(cx + Math.cos(a) * d, cy + Math.sin(a) * d, r, random));
 	}
-	return { blobs, toughness: difficulty };
+	return { blobs: blobs.map((b) => rotate(fitInside(b), rotation)), toughness: 2 };
+}
+
+// 周りに小さい粒をくっつけて、まん丸じゃない汚れにする
+function lump(x: number, y: number, r: number, random: () => number): DirtBlob[] {
+	const blobs = [{ x, y, r }];
+	for (let j = 0; j < 4; j++) {
+		const a = random() * Math.PI * 2;
+		blobs.push({ x: x + Math.cos(a) * r * 0.8, y: y + Math.sin(a) * r * 0.8, r: r * (0.3 + random() * 0.4) });
+	}
+	return blobs;
+}
+
+// 皿の内側からはみ出す粒は、中心に向かって押し戻す
+function fitInside(blob: DirtBlob): DirtBlob {
+	const d = Math.hypot(blob.x, blob.y);
+	const max = 1 - blob.r;
+	if (d <= max) return blob;
+	return { ...blob, x: (blob.x / d) * max, y: (blob.y / d) * max };
+}
+
+// 時計回りに 90° × times まわす（画面の座標は y が下向き）
+function rotate(blob: DirtBlob, times: number): DirtBlob {
+	let { x, y } = blob;
+	for (let i = 0; i < ((times % 4) + 4) % 4; i++) [x, y] = [-y, x];
+	return { ...blob, x, y };
 }
 
 function shuffle<T>(items: T[], random: () => number): T[] {

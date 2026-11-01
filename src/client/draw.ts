@@ -3,6 +3,9 @@ import type { DirtPattern } from "../shared/game";
 // 皿の内側（汚れが付く範囲）の半径。皿全体の半径に対する割合
 const INNER = 0.8;
 
+// 皿の縁の色。部位ごとの色にするかはプレイしながら決める
+export const PLATE_RIM = "#ffffff";
+
 export function drawPlate(ctx: CanvasRenderingContext2D, size: number, rim: string) {
 	const c = size / 2;
 	const r = c * 0.98;
@@ -10,6 +13,10 @@ export function drawPlate(ctx: CanvasRenderingContext2D, size: number, rim: stri
 	circle(ctx, c, c, r);
 	ctx.fillStyle = rim;
 	ctx.fill();
+	// 縁が白でも背景から浮くように、外側に線を引く
+	ctx.strokeStyle = "#d6d6d6";
+	ctx.lineWidth = size * 0.008;
+	ctx.stroke();
 	circle(ctx, c, c, r * 0.9);
 	ctx.fillStyle = "#ffffff";
 	ctx.fill();

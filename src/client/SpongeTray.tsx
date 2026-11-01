@@ -1,20 +1,18 @@
-import { type Dish, SPONGES } from "../shared/game";
+import { SPONGES } from "../shared/game";
 
-// 使う順に並べたスポンジ。使い終わった色は Frame 5 の暗い色になる
-export function SpongeTray({ dishes, current }: { dishes: Dish[]; current: number }) {
+// 5色のスポンジ。使い終わった色は Frame 5 の暗い色になる
+// 今のターンの色は出さない（実行役は指示役の声だけを頼りにする）
+export function SpongeTray({ used }: { used: Set<number> }) {
 	return (
 		<ol className="sponge-tray">
-			{dishes.map((dish, i) => {
-				const sponge = SPONGES[dish.sponge];
-				return (
-					<li
-						key={sponge.name}
-						className={i === current ? "sponge-slot sponge-slot-current" : "sponge-slot"}
-						style={{ background: i < current ? sponge.used : sponge.color }}
-						aria-label={sponge.name}
-					/>
-				);
-			})}
+			{SPONGES.map((sponge, i) => (
+				<li
+					key={sponge.name}
+					className="sponge-slot"
+					style={{ background: used.has(i) ? sponge.used : sponge.color }}
+					aria-label={sponge.name}
+				/>
+			))}
 		</ol>
 	);
 }

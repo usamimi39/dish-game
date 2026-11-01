@@ -1,22 +1,22 @@
 import { useEffect, useRef } from "react";
-import { createDirt } from "../shared/game";
-import { drawDirt, drawPlate } from "./draw";
+import { createDirt, type DirtSpec } from "../shared/game";
+import { drawDirt, drawPlate, PLATE_RIM } from "./draw";
 
 const SIZE = 360;
 
-// 指示役画面用。汚れの残りを濃さで表す
-type Props = { seed: number; kind: number; rimColor: string; remaining: number };
+type Props = { dirt: DirtSpec; remaining: number; className?: string };
 
-export function DishPreview({ seed, kind, rimColor, remaining }: Props) {
+// 指示役画面用。汚れの残りを濃さで表す
+export function DishPreview({ dirt: { seed, spread, distance, rotation }, remaining, className }: Props) {
 	const ref = useRef<HTMLCanvasElement>(null);
 
 	useEffect(() => {
 		const ctx = ref.current!.getContext("2d")!;
-		drawPlate(ctx, SIZE, rimColor);
+		drawPlate(ctx, SIZE, PLATE_RIM);
 		ctx.globalAlpha = remaining;
-		drawDirt(ctx, SIZE, createDirt(seed, kind));
+		drawDirt(ctx, SIZE, createDirt({ seed, spread, distance, rotation }));
 		ctx.globalAlpha = 1;
-	}, [seed, kind, rimColor, remaining]);
+	}, [seed, spread, distance, rotation, remaining]);
 
-	return <canvas ref={ref} width={SIZE} height={SIZE} className="dish-preview" />;
+	return <canvas ref={ref} width={SIZE} height={SIZE} className={className ?? "dish-preview"} />;
 }

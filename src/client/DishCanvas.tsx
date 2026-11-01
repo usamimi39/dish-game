@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { CLEAR_THRESHOLD, createDirt } from "../shared/game";
-import { drawDirt, drawPlate } from "./draw";
+import { CLEAR_THRESHOLD, createDirt, type DirtSpec } from "../shared/game";
+import { drawDirt, drawPlate, PLATE_RIM } from "./draw";
 import { getSettings } from "./tracking/settings";
 import { pickDetection, type Tracker } from "./tracking/tracker";
 
@@ -12,48 +12,65 @@ const MAX_JUMP = SIZE * 0.3;
 // カメラの位置のブレを抑える（1 に近いほどなめらかだけど遅れる）
 const SMOOTHING = 0.4;
 
-// マウスで消すか、カメラに映ったマーカーで消すか。sponge が "any" ならどの色のマーカーでも消せる
-export type DishInput = { type: "mouse" } | { type: "camera"; tracker: Tracker; sponge: number | "any" };
+// マウスで消すか、カメラに映ったマーカーで消すか、まだ消せないか。sponge が "any" ならどの色のマーカーでも消せる
+export type DishInput =
+	| { type: "none" }
+	| { type: "mouse" }
+	| { type: "camera"; tracker: Tracker; sponge: number | "any" };
+
+type Point = { x: number; y: number };
+
+type Eraser = {
+	moveTo: (point: Point, smoothing?: number) => void;
+	leave: () => void;
+};
 
 type Props = {
-	seed: number;
-	kind: number;
+	dirt: DirtSpec;
 	spongeColor: string;
-	rimColor: string;
 	input: DishInput;
 	onProgress?: (remaining: number) => void;
 	onCleared: () => void;
 };
 
 // なぞった所の汚れを消す皿
-export function DishCanvas({ seed, kind, spongeColor, rimColor, input, onProgress, onCleared }: Props) {
+export function DishCanvas({ dirt: spec, spongeColor, input, onProgress, onCleared }: Props) {
 	const plateRef = useRef<HTMLCanvasElement>(null);
 	const dirtRef = useRef<HTMLCanvasElement>(null);
 	const spongeRef = useRef<HTMLDivElement>(null);
+	const eraserRef = useRef<Eraser | null>(null);
 	const callbacks = useRef({ onProgress, onCleared });
 	callbacks.current = { onProgress, onCleared };
-	const tracker = input.type === "camera" ? input.tracker : null;
-	const trackedSponge = input.type === "camera" ? input.sponge : null;
+	const { seed, spread, distance, rotation } = spec;
 
+	// 汚れを描いて、消す処理を用意する。入力が変わっても描き直さない
 	useEffect(() => {
-		const plate = plateRef.current!;
 		const dirt = dirtRef.current!;
 		const sponge = spongeRef.current!;
 		const ctx = dirt.getContext("2d", { willReadFrequently: true })!;
-		const pattern = createDirt(seed, kind);
+		const pattern = createDirt({ seed, spread, distance, rotation });
 
-		drawPlate(plate.getContext("2d")!, SIZE, rimColor);
+		drawPlate(plateRef.current!.getContext("2d")!, SIZE, PLATE_RIM);
 		ctx.clearRect(0, 0, SIZE, SIZE);
 		drawDirt(ctx, SIZE, pattern);
 		const initial = alphaSum(ctx);
 
 		// 頑固な汚れほど一回でこすれる量が少ない
 		const strength = 0.5 / pattern.toughness;
-		let last: { x: number; y: number } | null = null;
+		let last: Point | null = null;
 		let changed = false;
 		let cleared = false;
 
-		const moveTo = (point: { x: number; y: number }) => {
+		const leave = () => {
+			last = null;
+			sponge.hidden = true;
+		};
+
+		const moveTo = (target: Point, smoothing = 0) => {
+			if (last && Math.hypot(target.x - last.x, target.y - last.y) > MAX_JUMP) last = null;
+			const point = last
+				? { x: last.x + (target.x - last.x) * (1 - smoothing), y: last.y + (target.y - last.y) * (1 - smoothing) }
+				: target;
 			// 再レンダーせずに動かしたいので、スタイルを直接書き換える
 			sponge.style.left = `${(point.x / SIZE) * 100}%`;
 			sponge.style.top = `${(point.y / SIZE) * 100}%`;
@@ -73,28 +90,8 @@ export function DishCanvas({ seed, kind, spongeColor, rimColor, input, onProgres
 			}
 			last = point;
 		};
-		const leave = () => {
-			last = null;
-			sponge.hidden = true;
-		};
 
-		const onPointerMove = (e: PointerEvent) => {
-			const rect = dirt.getBoundingClientRect();
-			moveTo({
-				x: ((e.clientX - rect.left) / rect.width) * SIZE,
-				y: ((e.clientY - rect.top) / rect.height) * SIZE,
-			});
-		};
-
-		// カメラ映像の全体を皿の全体に当てはめる
-		const onTrack = (detections: Parameters<typeof pickDetection>[0]) => {
-			const found = pickDetection(detections, trackedSponge ?? "any");
-			if (!found) return leave();
-			const x = (getSettings().mirror ? 1 - found.x : found.x) * SIZE;
-			const y = found.y * SIZE;
-			if (last && Math.hypot(x - last.x, y - last.y) > MAX_JUMP) last = null;
-			moveTo(last ? { x: last.x + (x - last.x) * (1 - SMOOTHING), y: last.y + (y - last.y) * (1 - SMOOTHING) } : { x, y });
-		};
+		eraserRef.current = { moveTo, leave };
 
 		const timer = setInterval(() => {
 			if (!changed || cleared) return;
@@ -107,24 +104,53 @@ export function DishCanvas({ seed, kind, spongeColor, rimColor, input, onProgres
 			}
 		}, PROGRESS_INTERVAL_MS);
 
-		if (tracker) {
-			const unsubscribe = tracker.subscribe((result) => onTrack(result.detections));
-			return () => {
-				clearInterval(timer);
-				unsubscribe();
-			};
-		}
-		dirt.addEventListener("pointermove", onPointerMove);
-		dirt.addEventListener("pointerleave", leave);
 		return () => {
 			clearInterval(timer);
-			dirt.removeEventListener("pointermove", onPointerMove);
-			dirt.removeEventListener("pointerleave", leave);
+			eraserRef.current = null;
 		};
-	}, [seed, kind, rimColor, tracker, trackedSponge]);
+	}, [seed, spread, distance, rotation]);
+
+	const tracker = input.type === "camera" ? input.tracker : null;
+	const trackedSponge = input.type === "camera" ? input.sponge : null;
+	const mouse = input.type === "mouse";
+
+	// 入力をつなぐ
+	useEffect(() => {
+		const dirt = dirtRef.current!;
+		const eraser = () => eraserRef.current;
+
+		if (tracker && trackedSponge !== null) {
+			// カメラ映像の全体を皿の全体に当てはめる
+			return tracker.subscribe(({ detections }) => {
+				const found = pickDetection(detections, trackedSponge);
+				if (!found) return eraser()?.leave();
+				const x = (getSettings().mirror ? 1 - found.x : found.x) * SIZE;
+				eraser()?.moveTo({ x, y: found.y * SIZE }, SMOOTHING);
+			});
+		}
+
+		if (mouse) {
+			const onPointerMove = (e: PointerEvent) => {
+				const rect = dirt.getBoundingClientRect();
+				eraser()?.moveTo({
+					x: ((e.clientX - rect.left) / rect.width) * SIZE,
+					y: ((e.clientY - rect.top) / rect.height) * SIZE,
+				});
+			};
+			const onPointerLeave = () => eraser()?.leave();
+			dirt.addEventListener("pointermove", onPointerMove);
+			dirt.addEventListener("pointerleave", onPointerLeave);
+			return () => {
+				dirt.removeEventListener("pointermove", onPointerMove);
+				dirt.removeEventListener("pointerleave", onPointerLeave);
+			};
+		}
+
+		eraser()?.leave();
+	}, [tracker, trackedSponge, mouse]);
 
 	return (
-		<div className="dish">
+		<div className={mouse ? "dish dish-mouse" : "dish"}>
 			<canvas ref={plateRef} width={SIZE} height={SIZE} />
 			<canvas ref={dirtRef} width={SIZE} height={SIZE} />
 			<div
