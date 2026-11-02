@@ -62,3 +62,29 @@ export function rangeFromSamples(samples: Hsv[]): ColorRange {
 function round2(n: number): number {
 	return Math.round(n * 100) / 100;
 }
+
+// 今の判定範囲を、新しく登録した範囲も含むように広げる（明るさの違う場所で何回か登録できるように）
+export function mergeRanges(a: ColorRange, b: ColorRange): ColorRange {
+	// a の色相を 0 としたときの b の色相（-180〜180）
+	const offset = ((b.hue - a.hue + 540) % 360) - 180;
+	const start = Math.min(-a.hueTolerance, offset - b.hueTolerance);
+	const end = Math.max(a.hueTolerance, offset + b.hueTolerance);
+	return {
+		hue: Math.round((a.hue + (start + end) / 2 + 360) % 360),
+		hueTolerance: Math.round(Math.min(MAX_TOLERANCE, (end - start) / 2)),
+		minSaturation: Math.min(a.minSaturation, b.minSaturation),
+		minValue: Math.min(a.minValue, b.minValue),
+	};
+}
+
+export const MAX_TOLERANCE = 60;
+
+// その色に判定されない理由。null なら判定される
+export type Miss = "hue" | "saturation" | "value" | null;
+
+export function missReason({ h, s, v }: Hsv, range: ColorRange): Miss {
+	if (hueDistance(h, range.hue) > range.hueTolerance) return "hue";
+	if (s < range.minSaturation) return "saturation";
+	if (v < range.minValue) return "value";
+	return null;
+}

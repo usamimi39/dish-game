@@ -586,3 +586,41 @@ body {
 	color: var(--sub);
 	font-size: 14px;
 }
+
+/* カメラの調整（デバッグ表示） */
+.range-solo {
+	outline: 3px solid var(--accent);
+}
+
+.range p {
+	margin: 0;
+}
+
+.range-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.hover-readout {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	min-height: 2em;
+	margin: 0;
+	font-size: 14px;
+}
+
+.hover-empty {
+	color: var(--sub);
+}
+
+.hover-values {
+	font-variant-numeric: tabular-nums;
+}
+
+.calibrate-fps {
+	color: var(--sub);
+	font-size: 12px;
+}
