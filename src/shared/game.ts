@@ -104,11 +104,6 @@ export function createDishes(random: () => number = Math.random): Dish[] {
 		}));
 }
 
-// 渡した皿で使うスポンジ
-export function usedSponges(dishes: Dish[]): Set<number> {
-	return new Set(dishes.map((dish) => dish.sponge));
-}
-
 export type DirtBlob = { x: number; y: number; r: number };
 
 export type DirtPattern = {

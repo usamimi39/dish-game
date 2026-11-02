@@ -1,6 +1,5 @@
-import { BODY_PART_LABELS, type DirtSpec, SPONGES, usedSponges } from "../shared/game";
+import { BODY_PART_LABELS, type DirtSpec, SPONGES } from "../shared/game";
 import { DishCanvas, type DishInput } from "./DishCanvas";
-import { SpongeTray } from "./SpongeTray";
 import { getSettings } from "./tracking/settings";
 import { useTracker } from "./tracking/useTracker";
 import { formatTime, useCountdown, useElapsed, useRoom } from "./useRoom";
@@ -28,7 +27,6 @@ export function Screen({ room }: { room: string }) {
 	const directorUrl = `${location.origin}/director/${room}`;
 	const dish = state.dishes[state.current];
 	const sponge = dish && SPONGES[dish.sponge];
-	const used = usedSponges(state.dishes.slice(0, state.current));
 
 	return (
 		<main className="screen">
@@ -65,9 +63,9 @@ export function Screen({ room }: { room: string }) {
 				<>
 					<div className="hud hud-left">{formatTime(elapsed)}</div>
 					<div className="hud hud-right">{state.current + 1}枚目</div>
-					<p className="screen-part" style={{ borderColor: sponge.color }}>
+					<p className="screen-part">
 						<span className="screen-part-chip" style={{ background: sponge.color }} />
-						{BODY_PART_LABELS[sponge.part]}で洗う！
+						{BODY_PART_LABELS[sponge.part]}
 					</p>
 					<DishCanvas
 						key={`dish-${state.current}`}
@@ -78,7 +76,6 @@ export function Screen({ room }: { room: string }) {
 						onProgress={(remaining) => send({ type: "progress", remaining })}
 						onCleared={() => send({ type: "cleared" })}
 					/>
-					<SpongeTray used={used} current={dish.sponge} />
 				</>
 			)}
 

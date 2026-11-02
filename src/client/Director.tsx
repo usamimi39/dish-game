@@ -145,41 +145,39 @@ function SetupList({ state, send }: { state: RoomState; send: (message: ClientMe
 						}}
 						className={drag?.moved && drag.over === i && drag.from !== i ? "setup-item setup-item-target" : "setup-item"}
 					>
-						<span className="setup-number">{i + 1}皿目</span>
+						<span className="setup-number">{i + 1}</span>
 						<DishPreview dirt={dish} rim={sponge.pastel} remaining={1} className="setup-preview" />
-						<div className="setup-controls">
+						<button
+							className={["part-block", selected === i && "part-block-selected", dragging && "part-block-dragging"]
+								.filter(Boolean)
+								.join(" ")}
+							style={{
+								background: sponge.color,
+								transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined,
+							}}
+							aria-label={`${i + 1}皿目の部位：${BODY_PART_LABELS[sponge.part]}`}
+							onPointerDown={onPointerDown(i)}
+							onPointerMove={onPointerMove}
+							onPointerUp={onPointerUp}
+							onPointerCancel={() => setDrag(null)}
+						>
+							{BODY_PART_LABELS[sponge.part]}
+						</button>
+						<div className="rotate-buttons">
 							<button
-								className={["part-block", selected === i && "part-block-selected", dragging && "part-block-dragging"]
-									.filter(Boolean)
-									.join(" ")}
-								style={{
-									background: sponge.color,
-									transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined,
-								}}
-								aria-label={`${i + 1}皿目の部位：${BODY_PART_LABELS[sponge.part]}`}
-								onPointerDown={onPointerDown(i)}
-								onPointerMove={onPointerMove}
-								onPointerUp={onPointerUp}
-								onPointerCancel={() => setDrag(null)}
+								className="rotate"
+								aria-label="左に回す"
+								onClick={() => send({ type: "rotate", dish: i, direction: -1 })}
 							>
-								{BODY_PART_LABELS[sponge.part]}
+								↺
 							</button>
-							<div className="rotate-buttons">
-								<button
-									className="rotate"
-									aria-label="左に回す"
-									onClick={() => send({ type: "rotate", dish: i, direction: -1 })}
-								>
-									↺
-								</button>
-								<button
-									className="rotate"
-									aria-label="右に回す"
-									onClick={() => send({ type: "rotate", dish: i, direction: 1 })}
-								>
-									↻
-								</button>
-							</div>
+							<button
+								className="rotate"
+								aria-label="右に回す"
+								onClick={() => send({ type: "rotate", dish: i, direction: 1 })}
+							>
+								↻
+							</button>
 						</div>
 					</li>
 				);
