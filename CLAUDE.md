@@ -104,6 +104,8 @@ lobby →（練習の皿をきれいにする）→ setup（30秒）→（DO の
 pnpm install
 pnpm dev          # http://localhost:5173（Worker と DO もこれ1本で動く）
 pnpm build        # tsc -b && vite build
+pnpm lint         # Biome で lint とフォーマットの確認（CI と同じ）
+pnpm format       # Biome で直せるものを直す（import の並び替えとフォーマット）
 pnpm deploy       # Cloudflare にデプロイ
 pnpm cf-typegen   # wrangler.jsonc を変えたら必ず実行（worker-configuration.d.ts を作り直す）
 ```
@@ -123,6 +125,10 @@ Windows のブラウザから `localhost:5173` を開けば、Windows につな�
 
 ## デプロイ
 
+- **GitHub Actions**（`.github/workflows/ci.yml`）: push と PR で `pnpm lint` と `pnpm build`（型チェック込み）を回す。main への push で通ったら `pnpm run deploy` で本番に上げる
+  - リポジトリの Secrets に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` が要る。無いあいだはデプロイだけ飛ばす（CI は赤くならない）
+  - トークンは Cloudflare ダッシュボードの「Edit Cloudflare Workers」テンプレートで作る。Zone は `onnenai.cc` を選ぶ
+- Biome の設定は `biome.json`。Markdown は対象外（CLAUDE.md の書き方を変えないため）。`noNonNullAssertion` と `useButtonType` は切っている
 - 本番: **https://sponge-man.onnenai.cc**（`wrangler.jsonc` の `routes` に `custom_domain: true` で指定）
 - `onnenai.cc` が同じ Cloudflare アカウントにあれば、`pnpm deploy` だけで DNS レコードと証明書も作られる。ダッシュボードで DNS を手で足す必要はない
   - 同じ名前の DNS レコードがすでにあると失敗するので、そのときは先に消す
@@ -147,7 +153,8 @@ Windows のブラウザから `localhost:5173` を開けば、Windows につな�
 - [x] スポンジの色（1皿1色・再利用なし・ポインターに付いてくる丸）
 - [x] GitHub に push
 - [x] 本番の設定（`sponge-man.onnenai.cc`）。`--dry-run` は通った
-- [ ] Cloudflare に初デプロイ（`pnpm wrangler login` → `pnpm deploy`）
+- [x] CI/CD（GitHub Actions: lint + build、main で自動デプロイ）
+- [ ] Cloudflare に初デプロイ（Secrets を入れて main に push する。手元からなら `pnpm wrangler login` → `pnpm deploy`）
 - [x] 3. 色トラッキングの土台（`/calibrate`、Worker での判定、カメラモード `?input=camera`）
 - [x] セッティング（30秒で皿を回す）と、指示役が部位を選ぶルール（11/01 版の仕様）
   - WebSocket の流れと汚れ 9 パターンの見た目はスクリプトで確認済み。**ブラウザでの画面はまだ見ていない**

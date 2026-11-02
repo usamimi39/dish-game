@@ -9,11 +9,11 @@ export function QrCode({ value, className }: { value: string; className?: string
 	const { size, path } = useMemo(() => {
 		const { data, size } = encode(value, { ecc: "M", border: QUIET_ZONE });
 		let path = "";
-		data.forEach((row, y) =>
+		data.forEach((row, y) => {
 			row.forEach((dark, x) => {
 				if (dark) path += `M${x} ${y}h1v1h-1z`;
-			}),
-		);
+			});
+		});
 		return { size, path };
 	}, [value]);
 

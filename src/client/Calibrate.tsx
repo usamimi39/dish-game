@@ -56,9 +56,7 @@ export function Calibrate() {
 		const stage = stageRef.current!;
 		stage.prepend(tracker.video);
 		// カメラの許可が出たあとでないと、カメラの名前が取れない
-		navigator.mediaDevices
-			.enumerateDevices()
-			.then((all) => setDevices(all.filter((d) => d.kind === "videoinput")));
+		navigator.mediaDevices.enumerateDevices().then((all) => setDevices(all.filter((d) => d.kind === "videoinput")));
 
 		const ctx = overlayRef.current!.getContext("2d")!;
 		const trails: TrailPoint[][] = SPONGES.map(() => []);
@@ -131,6 +129,8 @@ export function Calibrate() {
 	return (
 		<main className="calibrate">
 			<div className="calibrate-view">
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: マウスで映像の位置を指す画面 */}
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents: マウスで映像の位置を指す画面 */}
 				<div
 					ref={stageRef}
 					className={["stage", settings.mirror && "stage-mirror", registering !== null && "stage-picking"]
@@ -253,10 +253,38 @@ export function Calibrate() {
 										この色だけ表示
 									</button>
 								</div>
-								<Slider label="色相" value={range.hue} min={0} max={359} step={1} onChange={(hue) => updateRange(i, { hue })} />
-								<Slider label="色相の幅" value={range.hueTolerance} min={2} max={MAX_TOLERANCE} step={1} onChange={(hueTolerance) => updateRange(i, { hueTolerance })} />
-								<Slider label="彩度の下限" value={range.minSaturation} min={0} max={1} step={0.01} onChange={(minSaturation) => updateRange(i, { minSaturation })} />
-								<Slider label="明度の下限" value={range.minValue} min={0} max={1} step={0.01} onChange={(minValue) => updateRange(i, { minValue })} />
+								<Slider
+									label="色相"
+									value={range.hue}
+									min={0}
+									max={359}
+									step={1}
+									onChange={(hue) => updateRange(i, { hue })}
+								/>
+								<Slider
+									label="色相の幅"
+									value={range.hueTolerance}
+									min={2}
+									max={MAX_TOLERANCE}
+									step={1}
+									onChange={(hueTolerance) => updateRange(i, { hueTolerance })}
+								/>
+								<Slider
+									label="彩度の下限"
+									value={range.minSaturation}
+									min={0}
+									max={1}
+									step={0.01}
+									onChange={(minSaturation) => updateRange(i, { minSaturation })}
+								/>
+								<Slider
+									label="明度の下限"
+									value={range.minValue}
+									min={0}
+									max={1}
+									step={0.01}
+									onChange={(minValue) => updateRange(i, { minValue })}
+								/>
 							</li>
 						);
 					})}
@@ -304,13 +332,27 @@ function HoverReadout({ hover, ranges }: { hover: Hover | null; ranges: ColorRan
 	);
 }
 
-type SliderProps = { label: string; value: number; min: number; max: number; step: number; onChange: (value: number) => void };
+type SliderProps = {
+	label: string;
+	value: number;
+	min: number;
+	max: number;
+	step: number;
+	onChange: (value: number) => void;
+};
 
 function Slider({ label, value, min, max, step, onChange }: SliderProps) {
 	return (
 		<label className="slider">
 			<span>{label}</span>
-			<input type="range" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} />
+			<input
+				type="range"
+				value={value}
+				min={min}
+				max={max}
+				step={step}
+				onChange={(e) => onChange(Number(e.target.value))}
+			/>
 			<output>{value}</output>
 		</label>
 	);
@@ -401,7 +443,7 @@ function drawOverlay(
 		const trail = trails[i];
 		if (trail.length > 1) {
 			ctx.beginPath();
-			trail.forEach((p, k) => (k === 0 ? ctx.moveTo(p.x * width, p.y * height) : ctx.lineTo(p.x * width, p.y * height)));
+			for (const p of trail) ctx.lineTo(p.x * width, p.y * height);
 			ctx.lineWidth = 1.5;
 			ctx.strokeStyle = SPONGES[i].color;
 			ctx.stroke();

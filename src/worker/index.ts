@@ -5,8 +5,8 @@ import {
 	DISH_COUNT,
 	initialState,
 	type RoomState,
-	type ServerMessage,
 	SETUP_SECONDS,
+	type ServerMessage,
 } from "../shared/game";
 
 // 1ルーム = 1試合。ゲームの進行をまとめて、つながっている画面すべてに配る

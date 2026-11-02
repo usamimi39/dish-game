@@ -140,8 +140,6 @@ body {
 	pointer-events: none;
 }
 
-
-
 .sponge-chip {
 	width: 20px;
 	height: 20px;
@@ -258,7 +256,6 @@ body {
 .badge-done {
 	background: var(--done);
 }
-
 
 .dots {
 	display: flex;
@@ -475,7 +472,6 @@ body {
 	font-variant-numeric: tabular-nums;
 }
 
-
 .director-countdown {
 	margin: 0;
 	font-size: 40px;
@@ -536,7 +532,6 @@ body {
 	color: #fff;
 }
 
-
 .director-hint {
 	margin: 0;
 	color: var(--sub);
@@ -586,7 +581,6 @@ body {
 	background: #dbeaf8;
 }
 
-
 .part-block {
 	width: 100%;
 	min-height: 46px;
@@ -614,7 +608,9 @@ body {
 
 .part-block-selected {
 	border-color: var(--ink);
-	box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--ink);
+	box-shadow:
+		0 0 0 3px #fff,
+		0 0 0 6px var(--ink);
 }
 
 .part-block-dragging {

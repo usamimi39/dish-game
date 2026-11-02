@@ -1,5 +1,5 @@
 import type { ColorRange } from "./color";
-import { detect, type Detection } from "./detect";
+import { type Detection, detect } from "./detect";
 
 export type TrackRequest = { bitmap: ImageBitmap; ranges: ColorRange[] };
 export type TrackResult = { detections: (Detection | null)[]; labels: Uint8Array; width: number; height: number };

@@ -7,7 +7,12 @@ const SIZE = 360;
 type Props = { dirt: DirtSpec; rim?: string; remaining: number; className?: string };
 
 // 指示役画面用。汚れの残りを濃さで表す
-export function DishPreview({ dirt: { seed, spread, distance, rotation }, rim = PLATE_RIM, remaining, className }: Props) {
+export function DishPreview({
+	dirt: { seed, spread, distance, rotation },
+	rim = PLATE_RIM,
+	remaining,
+	className,
+}: Props) {
 	const ref = useRef<HTMLCanvasElement>(null);
 
 	useEffect(() => {

@@ -73,7 +73,9 @@ export function Director({ room }: { room: string }) {
 				{state.dishes.map((d, i) => (
 					<li key={d.seed}>
 						<button
-							className={["dot", i === view && "dot-view", state.remaining[i] === 0 && "dot-done"].filter(Boolean).join(" ")}
+							className={["dot", i === view && "dot-view", state.remaining[i] === 0 && "dot-done"]
+								.filter(Boolean)
+								.join(" ")}
 							aria-label={`${i + 1}皿目`}
 							onClick={() => setView(i)}
 						/>
@@ -84,7 +86,15 @@ export function Director({ room }: { room: string }) {
 	);
 }
 
-type Drag = { from: number; startX: number; startY: number; dx: number; dy: number; moved: boolean; over: number | null };
+type Drag = {
+	from: number;
+	startX: number;
+	startY: number;
+	dx: number;
+	dy: number;
+	moved: boolean;
+	over: number | null;
+};
 
 // 5枚の皿の一覧。部位のブロックは、別の皿のところへドラッグするか、2つ続けてタップすると入れ替わる
 function SetupList({ state, send }: { state: RoomState; send: (message: ClientMessage) => void }) {
@@ -143,7 +153,9 @@ function SetupList({ state, send }: { state: RoomState; send: (message: ClientMe
 						ref={(el) => {
 							rowRefs.current[i] = el;
 						}}
-						className={drag?.moved && drag.over === i && drag.from !== i ? "setup-item setup-item-target" : "setup-item"}
+						className={
+							drag?.moved && drag.over === i && drag.from !== i ? "setup-item setup-item-target" : "setup-item"
+						}
 					>
 						<span className="setup-number">{i + 1}</span>
 						<DishPreview dirt={dish} rim={sponge.pastel} remaining={1} className="setup-preview" />

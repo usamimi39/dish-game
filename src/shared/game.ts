@@ -89,7 +89,10 @@ export function initialState(): RoomState {
 
 // 9 パターンから 5 つ選ぶ。順番も初期の向きも部位の割り当てもランダム。チームごとに作り直すので、2チームで違う皿になる
 export function createDishes(random: () => number = Math.random): Dish[] {
-	const sponges = shuffle(SPONGES.map((_, i) => i), random);
+	const sponges = shuffle(
+		SPONGES.map((_, i) => i),
+		random,
+	);
 	const types: { spread: number; distance: number }[] = [];
 	for (let spread = 0; spread < SPREAD_LEVELS; spread++) {
 		for (let distance = 0; distance < DISTANCE_LEVELS; distance++) types.push({ spread, distance });

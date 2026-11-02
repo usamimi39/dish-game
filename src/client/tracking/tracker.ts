@@ -1,4 +1,4 @@
-import { FRAME_HEIGHT, FRAME_WIDTH, type Detection } from "./detect";
+import { type Detection, FRAME_HEIGHT, FRAME_WIDTH } from "./detect";
 import { getSettings } from "./settings";
 import type { TrackRequest, TrackResult } from "./worker";
 
@@ -27,7 +27,7 @@ export class Tracker {
 	}
 
 	async start(deviceId?: string | null) {
-		this.stream?.getTracks().forEach((t) => t.stop());
+		for (const track of this.stream?.getTracks() ?? []) track.stop();
 		this.stream = await navigator.mediaDevices.getUserMedia({
 			video: {
 				deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -51,7 +51,7 @@ export class Tracker {
 
 	destroy() {
 		this.running = false;
-		this.stream?.getTracks().forEach((t) => t.stop());
+		for (const track of this.stream?.getTracks() ?? []) track.stop();
 		this.worker.terminate();
 		this.listeners.clear();
 	}
