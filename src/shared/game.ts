@@ -47,10 +47,16 @@ export type Dish = {
 	sponge: number;
 };
 
+// 1ゲーム = A チームの 5 皿 → B チームの 5 皿。タイムが短いほうの勝ち
+export const TEAMS = ["A", "B"] as const;
+export type Team = (typeof TEAMS)[number];
+
 // lobby → setup（指示役が皿を回して、部位を割り当てる）→ playing（5ターン）→ finished
 export type GamePhase = "lobby" | "setup" | "playing" | "finished";
 
 export type RoomState = {
+	// 今プレイしているチーム。指示役の操作は、このチームの指示役からだけ受け付ける
+	team: Team;
 	phase: GamePhase;
 	// 出てくる順に並んだ皿
 	dishes: Dish[];
@@ -60,6 +66,8 @@ export type RoomState = {
 	setupEndsAt: number | null;
 	startedAt: number | null;
 	finishedAt: number | null;
+	// チームごとのタイム（ms）。まだ遊んでいなければ null
+	results: Record<Team, number | null>;
 };
 
 export type ClientMessage =
@@ -67,6 +75,9 @@ export type ClientMessage =
 	| { type: "start" }
 	| { type: "progress"; remaining: number }
 	| { type: "cleared" }
+	// A チームが終わったあとに B チームの番にする
+	| { type: "next" }
+	// ゲームを最初（A チームの lobby）からやり直す
 	| { type: "reset" }
 	// 指示役から
 	| { type: "rotate"; dish: number; direction: 1 | -1 }
@@ -77,6 +88,7 @@ export type ServerMessage = { type: "state"; state: RoomState; now: number };
 
 export function initialState(): RoomState {
 	return {
+		team: "A",
 		phase: "lobby",
 		dishes: [],
 		current: 0,
@@ -84,7 +96,27 @@ export function initialState(): RoomState {
 		setupEndsAt: null,
 		startedAt: null,
 		finishedAt: null,
+		results: { A: null, B: null },
 	};
+}
+
+// 指示役の URL は /director/<ルーム>-<チーム>（例: /director/K7QM-A）
+export function directorPath(room: string, team: Team): string {
+	return `/director/${room}-${team}`;
+}
+
+export function parseDirectorRoom(value: string): { room: string; team: Team | null } {
+	const match = /^(.+)-([AB])$/i.exec(value);
+	if (!match) return { room: value, team: null };
+	return { room: match[1], team: match[2].toUpperCase() as Team };
+}
+
+// どちらのチームが勝ったか。両方終わるまでは null、同じタイムなら "draw"
+export function winner(results: Record<Team, number | null>): Team | "draw" | null {
+	const { A, B } = results;
+	if (A === null || B === null) return null;
+	if (A === B) return "draw";
+	return A < B ? "A" : "B";
 }
 
 // 9 パターンから 5 つ選ぶ。順番も初期の向きも部位の割り当てもランダム。チームごとに作り直すので、2チームで違う皿になる

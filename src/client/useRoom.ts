@@ -1,8 +1,9 @@
 import usePartySocket from "partysocket/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientMessage, RoomState, ServerMessage } from "../shared/game";
+import type { ClientMessage, RoomState, ServerMessage, Team } from "../shared/game";
 
-export function useRoom(room: string) {
+// team は指示役のときだけ渡す。サーバーはこれで、どちらのチームの指示役かを見分ける
+export function useRoom(room: string, team?: Team) {
 	const [state, setState] = useState<RoomState | null>(null);
 	// サーバーと端末の時計のずれ。タイマーをどの画面でも揃えるために使う
 	const clockOffset = useRef(0);
@@ -10,6 +11,7 @@ export function useRoom(room: string) {
 	const socket = usePartySocket({
 		party: "game-room",
 		room,
+		query: team ? { team } : undefined,
 		onMessage(event) {
 			const message = JSON.parse(event.data) as ServerMessage;
 			clockOffset.current = message.now - Date.now();

@@ -32,6 +32,11 @@ body {
 	cursor: pointer;
 }
 
+.button:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
 .button-sub {
 	background: var(--muted);
 	color: var(--ink);
@@ -76,10 +81,9 @@ body {
 	font-size: 5vh;
 }
 
-/* スタート画面の右下に出す、指示役の参加用 QR コード */
+/* スタート画面の下の左右に出す、指示役の参加用 QR コード（A は左、B は右） */
 .join-card {
 	position: absolute;
-	right: 3vh;
 	bottom: 3vh;
 	display: grid;
 	gap: 1vh;
@@ -97,12 +101,25 @@ body {
 	height: 26vh;
 }
 
+.join-card-A {
+	left: 3vh;
+}
+
+.join-card-B {
+	right: 3vh;
+}
+
+/* これから遊ぶチームの QR を目立たせる。もう片方も読み取れるように消しはしない */
+.join-card-active {
+	outline: 0.6vh solid var(--accent);
+}
+
 .join-card p {
 	margin: 0;
 }
 
-.join-label {
-	font-size: 2.2vh;
+.join-team {
+	font-size: 2.8vh;
 	font-weight: 700;
 }
 
@@ -177,6 +194,43 @@ body {
 	font-variant-numeric: tabular-nums;
 }
 
+.result-winner {
+	font-size: 8vh;
+	font-weight: 700;
+}
+
+.scoreboard {
+	display: grid;
+	gap: 2vh;
+	margin: 4vh 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.score {
+	display: flex;
+	gap: 4vh;
+	justify-content: space-between;
+	align-items: baseline;
+	padding: 2vh 4vh;
+	border-radius: 2vh;
+	background: #fff;
+}
+
+.score-won {
+	outline: 0.6vh solid var(--accent);
+}
+
+.score-team {
+	font-weight: 700;
+}
+
+.score-time {
+	font-size: 8vh;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
 .result-actions {
 	display: flex;
 	gap: 16px;
@@ -185,6 +239,33 @@ body {
 }
 
 /* 指示役画面（スマホ） */
+.director-team {
+	align-self: flex-start;
+	margin: 0;
+	padding: 4px 12px;
+	border-radius: 999px;
+	background: var(--ink);
+	color: #fff;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.director-results {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 20px;
+	font-variant-numeric: tabular-nums;
+}
+
+.team-picker {
+	display: grid;
+	gap: 12px;
+	width: 100%;
+}
+
 .director {
 	display: flex;
 	flex-direction: column;

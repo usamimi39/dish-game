@@ -1,14 +1,45 @@
 import { useEffect, useRef, useState } from "react";
-import { BODY_PART_LABELS, type ClientMessage, type RoomState, SPONGES } from "../shared/game";
+import {
+	BODY_PART_LABELS,
+	type ClientMessage,
+	directorPath,
+	type RoomState,
+	SPONGES,
+	TEAMS,
+	type Team,
+	winner,
+} from "../shared/game";
 import { DishPreview } from "./DishPreview";
 import { formatTime, useCountdown, useElapsed, useRoom } from "./useRoom";
 
 // 指で動かしてからこれ以上離れたら、タップではなくドラッグとみなす（px）
 const DRAG_START = 8;
 
-// 指示役のスマホ画面。セッティングで皿を回して部位を割り当て、プレイ中は進み具合を見る
-export function Director({ room }: { room: string }) {
-	const { state, send, serverNow } = useRoom(room);
+// 指示役のスマホ画面。URL のチームが分からなければ、まずチームを選んでもらう
+export function Director({ room, team }: { room: string; team: Team | null }) {
+	if (!team) return <TeamPicker room={room} />;
+	return <TeamDirector room={room} team={team} />;
+}
+
+function TeamPicker({ room }: { room: string }) {
+	return (
+		<main className="director">
+			<h1 className="director-title">どちらのチーム？</h1>
+			<div className="team-picker">
+				{TEAMS.map((team) => (
+					<a key={team} className="button" href={directorPath(room, team)}>
+						{team}チームの指示役
+					</a>
+				))}
+			</div>
+		</main>
+	);
+}
+
+// セッティングで皿を回して部位を割り当て、プレイ中は進み具合を見る。
+// 操作できるのは自分のチームの番のときだけ（サーバーも、相手チームの番の操作は受け付けない）
+function TeamDirector({ room, team }: { room: string; team: Team }) {
+	const { state, send, serverNow } = useRoom(room, team);
 	const elapsed = useElapsed(state, serverNow);
 	const setupLeft = useCountdown(state?.phase === "setup" ? state.setupEndsAt : null, serverNow);
 	const [view, setView] = useState(0);
@@ -19,9 +50,21 @@ export function Director({ room }: { room: string }) {
 
 	if (!state) return <main className="director">接続中…</main>;
 
+	const badge = <p className="director-team">{team}チームの指示役</p>;
+
+	if (state.team !== team || (state.phase === "finished" && team === "B")) {
+		return (
+			<main className="director">
+				{badge}
+				<TurnStatus state={state} team={team} elapsed={elapsed} />
+			</main>
+		);
+	}
+
 	if (state.phase === "lobby") {
 		return (
 			<main className="director">
+				{badge}
 				<h1 className="director-title">皿一覧</h1>
 				<p className="director-wait">ゲームが始まるのを待っています…</p>
 			</main>
@@ -31,6 +74,7 @@ export function Director({ room }: { room: string }) {
 	if (state.phase === "setup") {
 		return (
 			<main className="director">
+				{badge}
 				<h1 className="director-title">お皿のセッティング</h1>
 				<p className="director-countdown">{Math.ceil(setupLeft / 1000)}秒</p>
 				<p className="director-hint">
@@ -47,6 +91,7 @@ export function Director({ room }: { room: string }) {
 
 	return (
 		<main className="director">
+			{badge}
 			<h1 className="director-title">皿一覧</h1>
 			<p className="director-timer">{formatTime(elapsed)}</p>
 
@@ -195,5 +240,34 @@ function SetupList({ state, send }: { state: RoomState; send: (message: ClientMe
 				);
 			})}
 		</ol>
+	);
+}
+
+// 自分のチームが操作できないあいだに出す。相手の番の進み具合と、ここまでの結果
+function TurnStatus({ state, team, elapsed }: { state: RoomState; team: Team; elapsed: number }) {
+	const other = state.team;
+	const won = winner(state.results);
+
+	let message: string;
+	if (won) message = won === "draw" ? "引き分け！" : won === team ? "勝ち！おめでとう！" : "負けちゃった…";
+	else if (team === "B") message = "いまは A チームの番です。B チームの番まで待っててね";
+	else message = "A チームの番は終わりました。B チームの番を見守ろう";
+
+	return (
+		<>
+			<p className="director-wait">{message}</p>
+			{!won && state.phase === "playing" && (
+				<p className="director-timer">
+					{other}チーム {formatTime(elapsed)}
+				</p>
+			)}
+			<ol className="director-results">
+				{TEAMS.map((t) => (
+					<li key={t}>
+						{t}チーム：{state.results[t] === null ? "まだ" : formatTime(state.results[t])}
+					</li>
+				))}
+			</ol>
+		</>
 	);
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { directorPath, TEAMS } from "../shared/game";
 
 const ROOM_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -23,13 +24,8 @@ export function Home() {
 					カメラの調整
 				</a>
 			</div>
-			<form
-				className="join"
-				onSubmit={(e) => {
-					e.preventDefault();
-					if (code) location.href = `/director/${code.toUpperCase()}`;
-				}}
-			>
+			{/* ふだんはプレイ画面の QR から入る。読めないときはルームコードとチームを選んで入る */}
+			<div className="join">
 				<input
 					value={code}
 					onChange={(e) => setCode(e.target.value)}
@@ -37,10 +33,19 @@ export function Home() {
 					maxLength={4}
 					autoCapitalize="characters"
 				/>
-				<button className="button" type="submit">
-					指示役で参加
-				</button>
-			</form>
+				{TEAMS.map((team) => (
+					<button
+						key={team}
+						className="button"
+						disabled={!code}
+						onClick={() => {
+							location.href = directorPath(code.toUpperCase(), team);
+						}}
+					>
+						{team}チームの指示役
+					</button>
+				))}
+			</div>
 		</main>
 	);
 }
