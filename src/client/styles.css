@@ -126,6 +126,13 @@ body {
 	width: 5vh;
 	height: 5vh;
 	border-radius: 50%;
+	transition: transform 0.2s;
+}
+
+/* 今のターンのスポンジ */
+.sponge-slot-current {
+	outline: 0.5vh solid #fff;
+	transform: scale(1.3);
 }
 
 
@@ -482,18 +489,6 @@ body {
 	font-variant-numeric: tabular-nums;
 }
 
-.screen-waiting {
-	position: absolute;
-	top: 50%;
-	margin: 0;
-	padding: 1vh 3vh;
-	border-radius: 999px;
-	background: rgb(43 43 43 / 0.8);
-	color: #fff;
-	font-size: 3vh;
-	transform: translateY(-50%);
-	pointer-events: none;
-}
 
 .director-countdown {
 	margin: 0;
@@ -513,6 +508,7 @@ body {
 
 .setup-item {
 	display: grid;
+	transition: background 0.1s;
 	grid-template-columns: 2.5em 1fr auto;
 	gap: 12px;
 	align-items: center;
@@ -552,34 +548,6 @@ body {
 	color: #fff;
 }
 
-.part-button {
-	display: flex;
-	gap: 4px;
-	align-items: center;
-	padding: 6px 10px;
-	border: 2px solid var(--muted);
-	border-radius: 999px;
-	background: #fff;
-	color: var(--ink);
-	font: inherit;
-	font-size: 16px;
-	cursor: pointer;
-}
-
-.part-button:disabled {
-	opacity: 0.35;
-	cursor: default;
-}
-
-.part-button-active {
-	border-color: var(--ink);
-	font-weight: 700;
-}
-
-/* 選んだ部位は、ターンが終わっても薄くしない */
-.part-button-active:disabled {
-	opacity: 1;
-}
 
 .director-hint {
 	margin: 0;
@@ -623,4 +591,73 @@ body {
 .calibrate-fps {
 	color: var(--sub);
 	font-size: 12px;
+}
+
+/* 部位のブロック（セッティングで入れ替える） */
+.setup-item-target {
+	background: #dbeaf8;
+}
+
+.setup-controls {
+	display: grid;
+	gap: 6px;
+	justify-items: center;
+}
+
+.part-block {
+	min-width: 112px;
+	padding: 8px 12px;
+	border: 3px solid rgb(0 0 0 / 0.15);
+	border-radius: 10px;
+	color: #fff;
+	font: inherit;
+	font-size: 18px;
+	font-weight: 700;
+	text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+	cursor: grab;
+	/* ブロックを掴んでいる間は、画面をスクロールさせない */
+	touch-action: none;
+	user-select: none;
+}
+
+.part-block-static {
+	margin: 0;
+	text-align: center;
+	cursor: default;
+}
+
+.part-block-selected {
+	border-color: var(--ink);
+	box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--ink);
+}
+
+.part-block-dragging {
+	position: relative;
+	z-index: 10;
+	box-shadow: 0 8px 20px rgb(0 0 0 / 0.3);
+	cursor: grabbing;
+}
+
+/* プレイ画面の「この皿はこの部位」 */
+.screen-part {
+	position: absolute;
+	top: 3vh;
+	left: 50%;
+	display: flex;
+	gap: 1.5vh;
+	align-items: center;
+	margin: 0;
+	padding: 1vh 3vh;
+	border: 0.6vh solid;
+	border-radius: 999px;
+	background: #fff;
+	font-size: 5vh;
+	font-weight: 700;
+	transform: translateX(-50%);
+}
+
+.screen-part-chip {
+	width: 4.5vh;
+	height: 4.5vh;
+	border-radius: 50%;
 }

@@ -3,7 +3,7 @@ import type { DirtPattern } from "../shared/game";
 // 皿の内側（汚れが付く範囲）の半径。皿全体の半径に対する割合
 const INNER = 0.8;
 
-// 皿の縁の色。部位ごとの色にするかはプレイしながら決める
+// 部位が決まっていない皿（練習用）の縁の色。部位が決まった皿は、その色のパステルで縁取る
 export const PLATE_RIM = "#ffffff";
 
 export function drawPlate(ctx: CanvasRenderingContext2D, size: number, rim: string) {

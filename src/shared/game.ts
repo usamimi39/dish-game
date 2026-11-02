@@ -12,8 +12,8 @@ export const BODY_PART_LABELS: Record<BodyPart, string> = {
 };
 
 // スポンジ = 体の部位に付けるマーカー。色と部位は固定で対応している
-// color: Figma の Frame 4 / used: 使い終わった色（Frame 5）/ pastel: color に白を 55% 混ぜた色（今は使っていない。皿の縁取りの候補）
-// 5ターンでどの部位も1回ずつしか使えない
+// color: Figma の Frame 4 / used: 使い終わった色（Frame 5）/ pastel: color に白を 55% 混ぜた色（皿の縁取り）
+// 5枚の皿に5つの部位を1つずつ割り当てる（指示役がセッティングで並べ替える）
 export const SPONGES = [
 	{ name: "red", part: "head", color: "#ff0000", used: "#8b0000", pastel: "#ff8c8c" },
 	{ name: "purple", part: "rightHand", color: "#9500ff", used: "#48007c", pastel: "#cf8cff" },
@@ -27,7 +27,7 @@ export const DISH_COUNT = SPONGES.length;
 // 汚れの残りがこの割合を下回ったらきれいになったとみなす
 export const CLEAR_THRESHOLD = 0.03;
 
-// 指示役が皿を回せる時間。時間切れでその時の向きに決まる
+// 指示役が皿を回したり部位を並べ替えたりできる時間。時間切れでその時の状態に決まる
 export const SETUP_SECONDS = 30;
 
 // 汚れは「拡散度 3 段階 × 中心からの距離 3 段階」の 9 パターン。そこから 5 つを選んで使う
@@ -43,11 +43,11 @@ export type Dish = {
 	seed: number;
 	// 時計回りに 90° を何回まわしたか（0〜3）。指示役がセッティングで変える
 	rotation: number;
-	// このターンに指示役が選んだスポンジ（= 部位）。選ばれるまでは null で、汚れは消せない
-	sponge: number | null;
+	// この皿を洗うスポンジ（= 部位）。5枚で全部違う。指示役がセッティングで入れ替える
+	sponge: number;
 };
 
-// lobby → setup（指示役が皿を回す）→ playing（5ターン）→ finished
+// lobby → setup（指示役が皿を回して、部位を割り当てる）→ playing（5ターン）→ finished
 export type GamePhase = "lobby" | "setup" | "playing" | "finished";
 
 export type RoomState = {
@@ -70,7 +70,8 @@ export type ClientMessage =
 	| { type: "reset" }
 	// 指示役から
 	| { type: "rotate"; dish: number; direction: 1 | -1 }
-	| { type: "choose"; sponge: number };
+	// 2枚の皿の部位を入れ替える
+	| { type: "swap"; a: number; b: number };
 
 export type ServerMessage = { type: "state"; state: RoomState; now: number };
 
@@ -86,25 +87,26 @@ export function initialState(): RoomState {
 	};
 }
 
-// 9 パターンから 5 つ選ぶ。順番も初期の向きもランダム。チームごとに作り直すので、2チームで違う皿になる
+// 9 パターンから 5 つ選ぶ。順番も初期の向きも部位の割り当てもランダム。チームごとに作り直すので、2チームで違う皿になる
 export function createDishes(random: () => number = Math.random): Dish[] {
+	const sponges = shuffle(SPONGES.map((_, i) => i), random);
 	const types: { spread: number; distance: number }[] = [];
 	for (let spread = 0; spread < SPREAD_LEVELS; spread++) {
 		for (let distance = 0; distance < DISTANCE_LEVELS; distance++) types.push({ spread, distance });
 	}
 	return shuffle(types, random)
 		.slice(0, DISH_COUNT)
-		.map((type) => ({
+		.map((type, i) => ({
 			...type,
 			seed: Math.floor(random() * 2 ** 32),
 			rotation: Math.floor(random() * 4),
-			sponge: null,
+			sponge: sponges[i],
 		}));
 }
 
-// このゲームでもう使ったスポンジ
+// 渡した皿で使うスポンジ
 export function usedSponges(dishes: Dish[]): Set<number> {
-	return new Set(dishes.flatMap((dish) => (dish.sponge === null ? [] : [dish.sponge])));
+	return new Set(dishes.map((dish) => dish.sponge));
 }
 
 export type DirtBlob = { x: number; y: number; r: number };

@@ -1,4 +1,4 @@
-import { type DirtSpec, SPONGES, usedSponges } from "../shared/game";
+import { BODY_PART_LABELS, type DirtSpec, SPONGES, usedSponges } from "../shared/game";
 import { DishCanvas, type DishInput } from "./DishCanvas";
 import { SpongeTray } from "./SpongeTray";
 import { getSettings } from "./tracking/settings";
@@ -21,15 +21,13 @@ export function Screen({ room }: { room: string }) {
 
 	if (!state) return <main className="screen">接続中…</main>;
 
-	// マウスモードでは、マウスが「指示役が選んだ部位」の代わりになる
-	const inputFor = (sponge: number | "any" | null): DishInput => {
-		if (sponge === null) return { type: "none" };
-		return tracker ? { type: "camera", tracker, sponge } : { type: "mouse" };
-	};
+	// マウスモードでは、マウスがその皿の部位の代わりになる
+	const inputFor = (sponge: number | "any"): DishInput =>
+		tracker ? { type: "camera", tracker, sponge } : { type: "mouse" };
 
 	const directorUrl = `${location.origin}/director/${room}`;
 	const dish = state.dishes[state.current];
-	// 今の皿の色は終わるまで暗くしない（どの部位か分かってしまうので）
+	const sponge = dish && SPONGES[dish.sponge];
 	const used = usedSponges(state.dishes.slice(0, state.current));
 
 	return (
@@ -67,16 +65,20 @@ export function Screen({ room }: { room: string }) {
 				<>
 					<div className="hud hud-left">{formatTime(elapsed)}</div>
 					<div className="hud hud-right">{state.current + 1}枚目</div>
+					<p className="screen-part" style={{ borderColor: sponge.color }}>
+						<span className="screen-part-chip" style={{ background: sponge.color }} />
+						{BODY_PART_LABELS[sponge.part]}で洗う！
+					</p>
 					<DishCanvas
 						key={`dish-${state.current}`}
 						dirt={dish}
-						spongeColor={dish.sponge === null ? PRACTICE_SPONGE : SPONGES[dish.sponge].color}
+						rim={sponge.pastel}
+						spongeColor={sponge.color}
 						input={inputFor(dish.sponge)}
 						onProgress={(remaining) => send({ type: "progress", remaining })}
 						onCleared={() => send({ type: "cleared" })}
 					/>
-					{dish.sponge === null && <p className="screen-waiting">指示役の指示を待っています…</p>}
-					<SpongeTray used={used} />
+					<SpongeTray used={used} current={dish.sponge} />
 				</>
 			)}
 

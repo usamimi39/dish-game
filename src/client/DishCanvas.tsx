@@ -12,7 +12,7 @@ const MAX_JUMP = SIZE * 0.3;
 // カメラの位置のブレを抑える（1 に近いほどなめらかだけど遅れる）
 const SMOOTHING = 0.4;
 
-// マウスで消すか、カメラに映ったマーカーで消すか、まだ消せないか。sponge が "any" ならどの色のマーカーでも消せる
+// マウスで消すか、カメラに映ったマーカーで消すか、消せないか。sponge が "any" ならどの色のマーカーでも消せる
 export type DishInput =
 	| { type: "none" }
 	| { type: "mouse" }
@@ -27,6 +27,7 @@ type Eraser = {
 
 type Props = {
 	dirt: DirtSpec;
+	rim?: string;
 	spongeColor: string;
 	input: DishInput;
 	onProgress?: (remaining: number) => void;
@@ -34,7 +35,7 @@ type Props = {
 };
 
 // なぞった所の汚れを消す皿
-export function DishCanvas({ dirt: spec, spongeColor, input, onProgress, onCleared }: Props) {
+export function DishCanvas({ dirt: spec, rim = PLATE_RIM, spongeColor, input, onProgress, onCleared }: Props) {
 	const plateRef = useRef<HTMLCanvasElement>(null);
 	const dirtRef = useRef<HTMLCanvasElement>(null);
 	const spongeRef = useRef<HTMLDivElement>(null);
@@ -50,7 +51,7 @@ export function DishCanvas({ dirt: spec, spongeColor, input, onProgress, onClear
 		const ctx = dirt.getContext("2d", { willReadFrequently: true })!;
 		const pattern = createDirt({ seed, spread, distance, rotation });
 
-		drawPlate(plateRef.current!.getContext("2d")!, SIZE, PLATE_RIM);
+		drawPlate(plateRef.current!.getContext("2d")!, SIZE, rim);
 		ctx.clearRect(0, 0, SIZE, SIZE);
 		drawDirt(ctx, SIZE, pattern);
 		const initial = alphaSum(ctx);
@@ -108,7 +109,7 @@ export function DishCanvas({ dirt: spec, spongeColor, input, onProgress, onClear
 			clearInterval(timer);
 			eraserRef.current = null;
 		};
-	}, [seed, spread, distance, rotation]);
+	}, [seed, spread, distance, rotation, rim]);
 
 	const tracker = input.type === "camera" ? input.tracker : null;
 	const trackedSponge = input.type === "camera" ? input.sponge : null;
