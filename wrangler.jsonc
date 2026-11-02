@@ -3,6 +3,8 @@
 	"name": "dish-game",
 	"main": "src/worker/index.ts",
 	"compatibility_date": "2026-10-01",
+	// 本番の URL。onnenai.cc が同じ Cloudflare アカウントにあれば、デプロイ時に DNS と証明書も自動で作られる
+	"routes": [{ "pattern": "sponge-man.onnenai.cc", "custom_domain": true }],
 	"assets": {
 		"not_found_handling": "single-page-application",
 		"run_worker_first": ["/parties/*"]

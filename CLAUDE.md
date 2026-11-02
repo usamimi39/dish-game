@@ -66,6 +66,7 @@ src/
    ├─ Director.tsx  # 指示役スマホ。setup では皿を回して部位のブロックを並べ替え、playing では進み具合を見る
    ├─ DishCanvas.tsx   # 汚れを消せる皿（入力はマウス / カメラ）
    ├─ DishPreview.tsx  # 指示役用の皿サムネイル
+   ├─ QrCode.tsx       # URL を QR コードの SVG にする（uqr）。スタート画面の右下に指示役の URL を出す
    ├─ Calibrate.tsx    # /calibrate: カメラ映像を見ながらマーカーの色の判定範囲を合わせる
    ├─ tracking/
    │  ├─ color.ts      # HSV 変換・判定範囲の初期値（SPONGES の色から作る）・クリックした色から範囲を作る
@@ -120,6 +121,17 @@ Windows のブラウザから `localhost:5173` を開けば、Windows につな�
 - カメラ映像の全体を皿の全体に当てはめている（左右反転あり）。位置が一気に 30% 以上飛んだら線でつながない。ブレを抑えるために少しなめらかにしている
 - 判定範囲の初期値は `SPONGES` の色から作った仮の値。遊ぶ前に毎回、本番のカメラと照明で `/calibrate` から登録し直す
 
+## デプロイ
+
+- 本番: **https://sponge-man.onnenai.cc**（`wrangler.jsonc` の `routes` に `custom_domain: true` で指定）
+- `onnenai.cc` が同じ Cloudflare アカウントにあれば、`pnpm deploy` だけで DNS レコードと証明書も作られる。ダッシュボードで DNS を手で足す必要はない
+  - 同じ名前の DNS レコードがすでにあると失敗するので、そのときは先に消す
+- 初回だけ `pnpm wrangler login`（ブラウザで許可する）。ブラウザが開けない環境では、API トークンを `CLOUDFLARE_API_TOKEN` に入れる
+- `pnpm deploy` は `pnpm build` のあとに `wrangler deploy` を実行する。`@cloudflare/vite-plugin` が書き出した `dist/dish_game/wrangler.json` が使われる
+- Durable Objects は SQLite 版（`new_sqlite_classes`）なので、無料プランでも動く
+- 確認だけなら `pnpm build && pnpm wrangler deploy --dry-run`（ログインしなくても動く）
+- 色の設定は `localStorage` に入っているので、URL が変わると（localhost → 本番）`/calibrate` でやり直しになる
+
 ## 注意
 
 - このリポジトリには `pnpm-workspace.yaml` を置いてある。親ディレクトリに別の pnpm ワークスペースがあっても巻き込まれないようにするため。消さないこと
@@ -134,7 +146,8 @@ Windows のブラウザから `localhost:5173` を開けば、Windows につな�
 - [x] 2. ルームでつながる + マウスで汚れを消す MVP
 - [x] スポンジの色（1皿1色・再利用なし・ポインターに付いてくる丸）
 - [x] GitHub に push
-- [ ] Cloudflare に初デプロイ（`dish.onnenai.cc` みたいなサブドメインを付ける）
+- [x] 本番の設定（`sponge-man.onnenai.cc`）。`--dry-run` は通った
+- [ ] Cloudflare に初デプロイ（`pnpm wrangler login` → `pnpm deploy`）
 - [x] 3. 色トラッキングの土台（`/calibrate`、Worker での判定、カメラモード `?input=camera`）
 - [x] セッティング（30秒で皿を回す）と、指示役が部位を選ぶルール（11/01 版の仕様）
   - WebSocket の流れと汚れ 9 パターンの見た目はスクリプトで確認済み。**ブラウザでの画面はまだ見ていない**
@@ -147,7 +160,7 @@ Windows のブラウザから `localhost:5173` を開けば、Windows につな�
 - [ ] 4. Figma に合わせて見た目を作る（シンクの背景、皿5色、汚れの画像、フォント）
 - [ ] 5. 試合の流れ：タイトル → チームA → チームB → スコアボード（2チームのタイムを比べる）
 - [ ] プレイログ（皿ごとのタイム・部位）を DO に保存して JSON で書き出す（発表・レポートの材料）
-- [ ] プレイ画面に指示役用の QR コードを出す
+- [x] スタート画面に指示役用の QR コードを出す（`location.origin` から作るので、本番では本番の URL になる）
 - [ ] 6. 会場リハ：本番の照明とプロジェクターの下で色を調整し直す
 
 ## まだ決めていないこと

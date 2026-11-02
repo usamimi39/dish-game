@@ -1,5 +1,6 @@
 import { BODY_PART_LABELS, type DirtSpec, SPONGES } from "../shared/game";
 import { DishCanvas, type DishInput } from "./DishCanvas";
+import { QrCode } from "./QrCode";
 import { getSettings } from "./tracking/settings";
 import { useTracker } from "./tracking/useTracker";
 import { formatTime, useCountdown, useElapsed, useRoom } from "./useRoom";
@@ -45,9 +46,12 @@ export function Screen({ room }: { room: string }) {
 						input={inputFor("any")}
 						onCleared={() => send({ type: "start" })}
 					/>
-					<p className="screen-join">
-						指示役は <strong>{directorUrl}</strong> をひらいてね（ルーム {room}）
-					</p>
+					{/* 指示役はスマホでこれを読み取って参加する */}
+					<aside className="join-card">
+						<QrCode value={directorUrl} className="join-qr" />
+						<p className="join-label">指示役はスマホで読み取ってね</p>
+						<p className="join-room">ルーム {room}</p>
+					</aside>
 				</>
 			)}
 

@@ -76,10 +76,40 @@ body {
 	font-size: 5vh;
 }
 
-.screen-join {
+/* スタート画面の右下に出す、指示役の参加用 QR コード */
+.join-card {
+	position: absolute;
+	right: 3vh;
+	bottom: 3vh;
+	display: grid;
+	gap: 1vh;
+	justify-items: center;
+	padding: 2vh;
+	border-radius: 2vh;
+	background: #fff;
+	box-shadow: 0 0.5vh 2vh rgb(0 0 0 / 0.12);
+}
+
+.join-qr {
+	display: block;
+	/* プロジェクター越しでも読めるように大きめにする */
+	width: 26vh;
+	height: 26vh;
+}
+
+.join-card p {
 	margin: 0;
-	color: var(--sub);
+}
+
+.join-label {
 	font-size: 2.2vh;
+	font-weight: 700;
+}
+
+.join-room {
+	color: var(--sub);
+	font-size: 2vh;
+	letter-spacing: 0.1em;
 }
 
 .dish {
