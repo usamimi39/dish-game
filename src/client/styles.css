@@ -785,3 +785,99 @@ body {
 	transform: translate(-50%, -50%);
 	pointer-events: none;
 }
+
+/* 皿が左からスライドしてくる */
+.dish-slide-in {
+	animation: dish-slide-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes dish-slide-in {
+	from {
+		transform: translateX(-90vw) rotate(-40deg);
+	}
+	to {
+		transform: none;
+	}
+}
+
+/* 洗い終わった皿が右のかごへ飛んでいく（画面のまんなかから） */
+.dish-leaving {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: min(78vh, 90vw);
+	aspect-ratio: 1;
+	pointer-events: none;
+	animation: dish-leave 0.7s ease-in forwards;
+}
+
+@keyframes dish-leave {
+	from {
+		transform: translate(-50%, -50%);
+	}
+	to {
+		transform: translate(calc(-50% + 42vw), -40%) scale(0.3, 0.35);
+		opacity: 0;
+	}
+}
+
+/* 右側の水切りかご */
+.rack {
+	position: absolute;
+	right: 3vh;
+	top: 50%;
+	transform: translateY(-50%);
+	display: grid;
+	justify-items: center;
+}
+
+.rack-slots {
+	display: flex;
+	gap: 0.5vh;
+	align-items: flex-end;
+	height: 24vh;
+	margin: 0;
+	padding: 0 2vh;
+	list-style: none;
+}
+
+.rack-slot {
+	width: 6vh;
+	height: 100%;
+	display: grid;
+	place-items: end center;
+	/* かごの仕切り */
+	background:
+		linear-gradient(to right, transparent 45%, #c9c9c9 45%, #c9c9c9 55%, transparent 55%) bottom / 100% 40% no-repeat;
+}
+
+/* 立てた皿は正面から見ると細長い楕円になる */
+.rack-dish {
+	width: 22vh;
+	height: 22vh;
+	flex: none;
+	transform: scaleX(0.27);
+	filter: drop-shadow(0 0.4vh 0.4vh rgb(0 0 0 / 0.2));
+}
+
+.rack-dish-new {
+	animation: rack-drop 0.4s 0.5s ease-out backwards;
+}
+
+@keyframes rack-drop {
+	from {
+		transform: translateY(-8vh) scaleX(0.27);
+		opacity: 0;
+	}
+	to {
+		transform: scaleX(0.27);
+		opacity: 1;
+	}
+}
+
+.rack-base {
+	width: 100%;
+	height: 1.5vh;
+	border-radius: 1vh;
+	background: #b5b5b5;
+}

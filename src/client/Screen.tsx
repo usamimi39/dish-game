@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { BODY_PART_LABELS, type DirtSpec, directorPath, type RoomState, SPONGES, TEAMS, winner } from "../shared/game";
 import { DishCanvas, type DishInput } from "./DishCanvas";
+import { DishPreview } from "./DishPreview";
 import { DwellButton } from "./DwellButton";
 import { QrCode } from "./QrCode";
 import { getSettings } from "./tracking/settings";
@@ -20,6 +22,7 @@ export function Screen({ room }: { room: string }) {
 	const elapsed = useElapsed(state, serverNow);
 	const setupLeft = useCountdown(state?.phase === "setup" ? state.setupEndsAt : null, serverNow);
 	const { tracker, error: cameraError } = useTracker(cameraMode, getSettings().deviceId);
+	const leaving = useLeavingDish(state);
 
 	if (!state) return <main className="screen">接続中…</main>;
 
@@ -81,15 +84,28 @@ export function Screen({ room }: { room: string }) {
 						<span className="screen-part-chip" style={{ background: sponge.color }} />
 						{BODY_PART_LABELS[sponge.part]}
 					</p>
-					<DishCanvas
-						key={`dish-${state.current}`}
-						dirt={dish}
-						rim={sponge.pastel}
-						spongeColor={sponge.color}
-						input={inputFor(dish.sponge)}
-						onProgress={(remaining) => send({ type: "progress", remaining })}
-						onCleared={() => send({ type: "cleared" })}
-					/>
+					{/* 新しい皿は左からスライドしてくる */}
+					<div key={`dish-${state.current}`} className="dish-slide-in">
+						<DishCanvas
+							dirt={dish}
+							rim={sponge.pastel}
+							spongeColor={sponge.color}
+							input={inputFor(dish.sponge)}
+							onProgress={(remaining) => send({ type: "progress", remaining })}
+							onCleared={() => send({ type: "cleared" })}
+						/>
+					</div>
+					{/* 洗い終わった皿は、きれいになった姿で右の水切りかごへ飛んでいく */}
+					{leaving !== null && state.dishes[leaving] && (
+						<DishPreview
+							key={`leaving-${leaving}`}
+							dirt={state.dishes[leaving]}
+							rim={SPONGES[state.dishes[leaving].sponge].pastel}
+							remaining={0}
+							className="dish-leaving"
+						/>
+					)}
+					<DishRack state={state} />
 				</>
 			)}
 
@@ -133,5 +149,48 @@ function Scoreboard({ results, tracker, onRestart }: ScoreboardProps) {
 				</DwellButton>
 			</div>
 		</div>
+	);
+}
+
+// 皿が洗い終わって次に進んだ直後のあいだだけ、その皿の番号を返す（右へ飛んでいく演出に使う）
+const LEAVING_MS = 700;
+
+function useLeavingDish(state: RoomState | null): number | null {
+	const [leaving, setLeaving] = useState<number | null>(null);
+	const previous = useRef<number | null>(null);
+	const current = state?.phase === "playing" ? state.current : null;
+
+	useEffect(() => {
+		const before = previous.current;
+		previous.current = current;
+		if (before === null || current === null || current <= before) return;
+		setLeaving(before);
+		const timer = setTimeout(() => setLeaving(null), LEAVING_MS);
+		return () => clearTimeout(timer);
+	}, [current]);
+
+	return leaving;
+}
+
+// 右側の水切りかご。洗い終わった皿が立てて並ぶ
+function DishRack({ state }: { state: RoomState }) {
+	return (
+		<aside className="rack" aria-label={`洗い終わった皿 ${state.current}枚`}>
+			<ol className="rack-slots">
+				{state.dishes.map((dish, i) => (
+					<li key={dish.seed} className="rack-slot">
+						{i < state.current && (
+							<DishPreview
+								dirt={dish}
+								rim={SPONGES[dish.sponge].pastel}
+								remaining={0}
+								className={i === state.current - 1 ? "rack-dish rack-dish-new" : "rack-dish"}
+							/>
+						)}
+					</li>
+				))}
+			</ol>
+			<div className="rack-base" />
+		</aside>
 	);
 }
