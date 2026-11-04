@@ -1,7 +1,9 @@
 import { BODY_PART_LABELS, type DirtSpec, directorPath, type RoomState, SPONGES, TEAMS, winner } from "../shared/game";
 import { DishCanvas, type DishInput } from "./DishCanvas";
+import { DwellButton } from "./DwellButton";
 import { QrCode } from "./QrCode";
 import { getSettings } from "./tracking/settings";
+import type { Tracker } from "./tracking/tracker";
 import { useTracker } from "./tracking/useTracker";
 import { formatTime, useCountdown, useElapsed, useRoom } from "./useRoom";
 
@@ -97,20 +99,22 @@ export function Screen({ room }: { room: string }) {
 						<p>Aチーム ぜんぶキレイ！</p>
 						<p className="result-time">{formatTime(elapsed)}</p>
 						<div className="result-actions">
-							<button className="button" onClick={() => send({ type: "next" })}>
+							<DwellButton tracker={tracker} onActivate={() => send({ type: "next" })}>
 								Bチームの番へ
-							</button>
+							</DwellButton>
 						</div>
 					</div>
 				) : (
-					<Scoreboard results={state.results} onRestart={() => send({ type: "reset" })} />
+					<Scoreboard results={state.results} tracker={tracker} onRestart={() => send({ type: "reset" })} />
 				))}
 		</main>
 	);
 }
 
 // 両チームが終わったあとの結果。タイムが短いほうの勝ち
-function Scoreboard({ results, onRestart }: { results: RoomState["results"]; onRestart: () => void }) {
+type ScoreboardProps = { results: RoomState["results"]; tracker: Tracker | null; onRestart: () => void };
+
+function Scoreboard({ results, tracker, onRestart }: ScoreboardProps) {
 	const won = winner(results);
 	return (
 		<div className="result">
@@ -124,9 +128,9 @@ function Scoreboard({ results, onRestart }: { results: RoomState["results"]; onR
 				))}
 			</ol>
 			<div className="result-actions">
-				<button className="button" onClick={onRestart}>
+				<DwellButton tracker={tracker} onActivate={onRestart}>
 					新しいゲーム
-				</button>
+				</DwellButton>
 			</div>
 		</div>
 	);

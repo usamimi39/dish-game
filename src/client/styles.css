@@ -720,3 +720,22 @@ body {
 	height: 4.5vh;
 	border-radius: 50%;
 }
+
+/* カメラでも押せるボタン。マーカーを重ねているあいだ、左から色が満ちていく */
+.dwell-button {
+	padding: 3vh 6vh;
+	font-size: 4vh;
+	background: linear-gradient(to right, var(--done) calc(var(--progress, 0) * 100%), var(--accent) 0);
+}
+
+.dwell-cursor {
+	position: fixed;
+	z-index: 20;
+	width: 5vh;
+	height: 5vh;
+	border: 0.6vh solid #fff;
+	border-radius: 50%;
+	background: rgb(43 43 43 / 0.5);
+	transform: translate(-50%, -50%);
+	pointer-events: none;
+}
