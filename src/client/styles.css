@@ -821,7 +821,7 @@ body {
 	}
 }
 
-/* 右側の水切りかご */
+/* 右側に洗い終わった皿を立てて干す */
 .rack {
 	position: absolute;
 	right: 3vh;
@@ -833,28 +833,25 @@ body {
 
 .rack-slots {
 	display: flex;
-	gap: 0.5vh;
-	align-items: flex-end;
-	height: 24vh;
+	gap: 1vh;
+	align-items: center;
+	height: 36vh;
 	margin: 0;
-	padding: 0 2vh;
+	padding: 0 3vh;
 	list-style: none;
 }
 
 .rack-slot {
-	width: 6vh;
+	width: 7vh;
 	height: 100%;
 	display: grid;
-	place-items: end center;
-	/* かごの仕切り */
-	background:
-		linear-gradient(to right, transparent 45%, #c9c9c9 45%, #c9c9c9 55%, transparent 55%) bottom / 100% 40% no-repeat;
+	place-items: center;
 }
 
 /* 立てた皿は正面から見ると細長い楕円になる */
 .rack-dish {
-	width: 22vh;
-	height: 22vh;
+	width: 34vh;
+	height: 34vh;
 	flex: none;
 	transform: scaleX(0.27);
 	filter: drop-shadow(0 0.4vh 0.4vh rgb(0 0 0 / 0.2));
@@ -873,11 +870,4 @@ body {
 		transform: scaleX(0.27);
 		opacity: 1;
 	}
-}
-
-.rack-base {
-	width: 100%;
-	height: 1.5vh;
-	border-radius: 1vh;
-	background: #b5b5b5;
 }

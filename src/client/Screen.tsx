@@ -172,7 +172,7 @@ function useLeavingDish(state: RoomState | null): number | null {
 	return leaving;
 }
 
-// 右側の水切りかご。洗い終わった皿が立てて並ぶ
+// 右側に、洗い終わった皿が立てて干されていく（上から見ているので細長く見える。かごは描かない）
 function DishRack({ state }: { state: RoomState }) {
 	return (
 		<aside className="rack" aria-label={`洗い終わった皿 ${state.current}枚`}>
@@ -190,7 +190,6 @@ function DishRack({ state }: { state: RoomState }) {
 					</li>
 				))}
 			</ol>
-			<div className="rack-base" />
 		</aside>
 	);
 }
