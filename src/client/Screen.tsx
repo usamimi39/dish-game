@@ -10,9 +10,10 @@ import type { Tracker } from "./tracking/tracker";
 import { useTracker } from "./tracking/useTracker";
 import { formatTime, useCountdown, useElapsed, useRoom } from "./useRoom";
 
-// 練習用の皿。スポンジを消費しないので、どの色でもない灰色で消す
+// 練習用の皿
 const PRACTICE_DIRT: DirtSpec = { seed: 1, spread: 0, distance: 0, rotation: 0 };
-const PRACTICE_SPONGE = "#bdbdbd";
+// スタートや次へ進む操作は頭（赤）のマーカーだけで反応させる。赤がいちばん認識しやすく、頭なら届く位置＝画面の上に置ける
+const HEAD = SPONGES.findIndex((s) => s.part === "head");
 
 // URL に ?input=camera を付けるとカメラのマーカーで遊ぶ。付けなければマウス
 const cameraMode = new URLSearchParams(location.search).get("input") === "camera";
@@ -35,7 +36,7 @@ export function Screen({ room }: { room: string }) {
 	const sponge = dish && SPONGES[dish.sponge];
 
 	return (
-		<main className="screen">
+		<main className={state.phase === "lobby" || state.phase === "finished" ? "screen screen-top" : "screen"}>
 			<FullscreenButton />
 			{cameraMode && !tracker && (
 				<p className="camera-status">{cameraError ? `カメラが使えません: ${cameraError}` : "カメラを準備中…"}</p>
@@ -43,15 +44,18 @@ export function Screen({ room }: { room: string }) {
 
 			{state.phase === "lobby" && (
 				<>
-					<h1 className="screen-title">{state.team}チームの番！きれいにしてスタート</h1>
-					{/* 練習用の皿。きれいにするとセッティングが始まる */}
+					{/* 練習用の皿。頭のマーカーできれいにするとセッティングが始まる。頭が届くよう画面の上に出す */}
 					<DishCanvas
 						key="lobby"
 						dirt={PRACTICE_DIRT}
-						spongeColor={PRACTICE_SPONGE}
-						input={inputFor("any")}
+						rim={SPONGES[HEAD].pastel}
+						spongeColor={SPONGES[HEAD].color}
+						input={inputFor(HEAD)}
 						onCleared={() => send({ type: "start" })}
 					/>
+					<h1 className="screen-title">
+						{state.team}チームの番！{BODY_PART_LABELS[SPONGES[HEAD].part]}できれいにしてスタート
+					</h1>
 					{/* 指示役はスマホで自分のチームの QR を読み取って参加する。A は左、B は右 */}
 					{TEAMS.map((team) => (
 						<aside
@@ -136,6 +140,11 @@ function Scoreboard({ results, tracker, onRestart }: ScoreboardProps) {
 	const won = winner(results);
 	return (
 		<div className="result">
+			<div className="result-actions">
+				<DwellButton tracker={tracker} sponge={HEAD} onActivate={onRestart}>
+					新しいゲーム
+				</DwellButton>
+			</div>
 			<p className="result-winner">{won === "draw" ? "引き分け！" : `${won}チームの勝ち！`}</p>
 			<ol className="scoreboard">
 				{TEAMS.map((team) => (
@@ -145,11 +154,6 @@ function Scoreboard({ results, tracker, onRestart }: ScoreboardProps) {
 					</li>
 				))}
 			</ol>
-			<div className="result-actions">
-				<DwellButton tracker={tracker} onActivate={onRestart}>
-					新しいゲーム
-				</DwellButton>
-			</div>
 		</div>
 	);
 }

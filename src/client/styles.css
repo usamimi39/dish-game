@@ -887,3 +887,13 @@ body {
 	font-size: 1rem;
 	cursor: pointer;
 }
+
+/* スタート画面と結果画面は、頭で届くように操作するもの（皿・ボタン）を上に寄せる */
+.screen-top {
+	justify-content: flex-start;
+	padding-top: 3vh;
+}
+
+.screen-top .result-actions {
+	margin: 0 0 4vh;
+}

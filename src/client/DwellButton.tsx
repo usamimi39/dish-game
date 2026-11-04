@@ -9,10 +9,10 @@ const DWELL_MS = 2000;
 // カーソルのブレを抑える（1 に近いほどなめらかだけど遅れる）
 const SMOOTHING = 0.5;
 
-type Props = { tracker: Tracker | null; onActivate: () => void; children: ReactNode };
+type Props = { tracker: Tracker | null; onActivate: () => void; children: ReactNode; sponge?: number | "any" };
 
-// カメラモードでは、どの色のマーカーでも重ね続けると押せるボタン。マウスのクリックでも押せる
-export function DwellButton({ tracker, onActivate, children }: Props) {
+// カメラモードでは、マーカーを重ね続けると押せるボタン（sponge で色を絞れる）。マウスのクリックでも押せる
+export function DwellButton({ tracker, onActivate, children, sponge = "any" }: Props) {
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const cursorRef = useRef<HTMLDivElement>(null);
 	const activate = useRef(onActivate);
@@ -30,7 +30,7 @@ export function DwellButton({ tracker, onActivate, children }: Props) {
 
 		return tracker.subscribe(({ detections }) => {
 			if (done) return;
-			const found = pickDetection(detections, "any");
+			const found = pickDetection(detections, sponge);
 			if (!found) {
 				point = null;
 				enteredAt = null;
@@ -67,7 +67,7 @@ export function DwellButton({ tracker, onActivate, children }: Props) {
 				activate.current();
 			}
 		});
-	}, [tracker]);
+	}, [tracker, sponge]);
 
 	return (
 		<>
