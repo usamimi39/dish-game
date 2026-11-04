@@ -871,3 +871,19 @@ body {
 		opacity: 1;
 	}
 }
+
+/* 全画面ボタン（全画面中は出さない） */
+.fullscreen-button {
+	position: fixed;
+	right: 1.5vh;
+	bottom: 1.5vh;
+	z-index: 20;
+	padding: 0.6em 1em;
+	border: none;
+	border-radius: 10px;
+	background: rgb(0 0 0 / 0.55);
+	color: #fff;
+	font: inherit;
+	font-size: 1rem;
+	cursor: pointer;
+}

@@ -3,6 +3,7 @@ import { BODY_PART_LABELS, type DirtSpec, directorPath, type RoomState, SPONGES,
 import { DishCanvas, type DishInput } from "./DishCanvas";
 import { DishPreview } from "./DishPreview";
 import { DwellButton } from "./DwellButton";
+import { FullscreenButton } from "./FullscreenButton";
 import { QrCode } from "./QrCode";
 import { getSettings } from "./tracking/settings";
 import type { Tracker } from "./tracking/tracker";
@@ -35,6 +36,7 @@ export function Screen({ room }: { room: string }) {
 
 	return (
 		<main className="screen">
+			<FullscreenButton />
 			{cameraMode && !tracker && (
 				<p className="camera-status">{cameraError ? `カメラが使えません: ${cameraError}` : "カメラを準備中…"}</p>
 			)}
