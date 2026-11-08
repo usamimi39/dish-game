@@ -29,6 +29,14 @@
 - 指示役は声で応援・アドバイスする（スマホでは皿ごとの汚れの残りと部位が見られる）
 - 11/01 版の「プレイ中に指示役が部位を選び、プレイ画面には出さない」はやめた
 
+### 結果発表とランキング（11/09）
+- 両チームが終わると、指示役のスマホに「チーム名を入力して保存」と「保存しない」が出る
+- **両チームがどちらかを選ぶまで、新しいゲームには進まない**。選び終わると `NEXT_GAME_SECONDS`（10 秒）後に自動で A の lobby に戻る。プレイ画面の「新しいゲーム」ボタンはなくした
+  - スマホが落ちて選べなくなったら、そのルームは進まない。ホームから新しいルームを作り直す
+- ランキングはチームごとのタイム順（A か B かは関係なし）。**名前を付けて保存した記録だけ**を残し、保存しなかった記録はどこにも残さない
+- 記録は 1 件ずつ ID を持つので、同じ名前のチームがいてもよい（同名チェックはしない）。名前は 12 文字まで（`normalizeTeamName`）
+- ランキング（TOP10）はプレイ画面の結果発表にだけ出す。スマホには自分の順位だけ出す
+
 ### 決めたこと
 - マーカーで押す操作（スタートの練習の皿、結果画面の「Bチームの番へ」「新しいゲーム」）は**頭（赤）のマーカーだけ**に反応する。赤がいちばん認識しやすく、ほかの部位の誤反応も防げる。頭が届くよう画面の上に置く
 - 皿（パターン・初期の向き・順番）は**チームごとにランダム**。運も楽しさのうち（10/21 版の「2チームで同じ汚れ」はやめた）
@@ -54,7 +62,7 @@
 | フロント | Vite + React + TypeScript（ルーターなし） | 画面が3つだけ。SSR も SEO もいらない |
 | 描画 | Canvas 2D | 汚れはマスクを `destination-out` で削るだけで作れる |
 | バックエンド | Cloudflare Workers + Durable Objects（PartyServer） | 無料で使える。`*.onnenai.cc` のドメインもある。WebSocket と相性がいい |
-| DB | 今はなし。試合結果は DO のストレージに置く | 歴代ランキングが欲しくなったら D1 を足す |
+| DB | ランキングは専用の Durable Object（`Leaderboard`、SQLite）に置く | D1 を作らずに今の CI のままデプロイできる。中身は SQL のテーブル（`runs`）なので、あとで D1 に移すのも簡単 |
 | リポジトリ | pnpm のパッケージ1つ（ワークスペースに分けない） | `@cloudflare/vite-plugin` でフロントと Worker を1つにまとめられる |
 
 カメラ映像の処理は**プロジェクター用PCのブラウザの中だけ**で行う。サーバーには映像を送らず、汚れの残りだけを送る。
@@ -65,6 +73,7 @@
 src/
 ├─ shared/game.ts   # ルール・型・メッセージ。フロントと Worker の両方から import する
 ├─ worker/index.ts  # GameRoom（Durable Object）: 1ルーム = 1試合
+├─ worker/leaderboard.ts  # Leaderboard（Durable Object・SQLite）: ルームをまたいだランキング。インスタンスは "global" の 1 つだけ
 └─ client/
    ├─ main.tsx      # パスで画面を出し分ける（/, /screen/:room, /director/:room）
    ├─ Home.tsx      # ルームを作る / コードを入れて指示役で参加
@@ -90,15 +99,18 @@ src/
 
 ```
 A: lobby →（練習の皿をきれいにする）→ setup（15秒）→（DO のアラーム）→ playing（5皿）→ finished
-  →（next）→ B: lobby → setup → playing → finished（結果発表）→（reset）→ A: lobby
+  →（next）→ B: lobby → setup → playing → finished（結果発表）
+  →（両チームが save / skip を選ぶ → 10 秒後のアラーム）→ A: lobby
 ```
 
 - サーバー（`GameRoom`）が `RoomState` を持っていて、何か変わるたびに `{ type: "state", state, now }` を全員に配る
 - `RoomState.team` が今のチーム、`results` がチームごとのタイム（ms）。`start` しても `team` と `results` は引き継ぐ
-- プレイ画面が送るもの: `start` / `progress`（今の皿の汚れの残り。200ms ごと）/ `cleared` / `next`（A が終わったら B の番へ）/ `reset`（新しいゲーム）
+- プレイ画面が送るもの: `start` / `progress`（今の皿の汚れの残り。200ms ごと）/ `cleared` / `next`（A が終わったら B の番へ）
 - 指示役は WebSocket の URL に `?team=A` を付けてつなぐ（`useRoom(room, team)`）。サーバーは `connection.uri` からチームを読んで、今のチーム以外の `rotate` / `swap` を無視する
   - 認証ではなく URL で分けているだけ。遊びの場なのでこれで十分という判断
 - 指示役が送るもの: `rotate`（皿を回す）/ `swap`（2 枚の皿の部位を入れ替える）。どちらも setup 中だけで、締め切りを過ぎたら無視
+- 結果発表のあと、指示役が送るもの: `save`（チーム名）/ `skip`。各チーム 1 回だけ。`save` は `Leaderboard` に書き込んで、順位と TOP10 を `RoomState.decisions` / `ranking` に入れて配る
+- `GameRoom` のアラームは、setup の締め切りと、結果発表のあとの新しいゲームへの切り替え（`nextGameAt`）の 2 つに使う
 - 不正なメッセージはサーバーが無視する
 - setup の締め切りは `ctx.storage.setAlarm` で予約していて、`onAlarm` で playing に進む。タイマーはそこから始まる
 - 皿（`Dish`）= `{ spread, distance, seed, rotation, sponge }`。`sponge` は `createDishes` でランダムな並びを割り当てて、5 枚で必ず全部違う
@@ -182,6 +194,7 @@ Windows のブラウザから `localhost:5173` を開けば、Windows につな�
 - [ ] 4. Figma に合わせて見た目を作る（シンクの背景、皿5色、汚れの画像、フォント）
 - [x] 2チーム制：A → B → 結果発表。指示役の URL をチームで分け、相手のターンは操作できない（WebSocket の流れはスクリプトで確認済み）
 - [ ] 5. 試合の流れの見た目：タイトル画面・スコアボードを Figma に合わせる
+- [x] ランキング：結果発表でチーム名を入れて保存 / 保存しない。両チームが選ぶと新しいゲームへ。TOP10 をプレイ画面に出す（11/09。WebSocket の流れはスクリプトで確認済み。**画面はブラウザでまだ見ていない**）
 - [ ] プレイログ（皿ごとのタイム・部位）を DO に保存して JSON で書き出す（発表・レポートの材料）
 - [x] スタート画面に指示役用の QR コードを出す（`location.origin` から作るので、本番では本番の URL になる）
 - [ ] 6. 会場リハ：本番の照明とプロジェクターの下で色を調整し直す
@@ -192,4 +205,3 @@ Windows のブラウザから `localhost:5173` を開けば、Windows につな�
 - 色と部位の組み合わせ（今は仮で赤=頭…黄=左足。`SPONGES` の `part` を書き換えれば変えられる）
 - 汚れの量や落ちにくさのバランス（9 パターンの `SPREADS` / `DISTANCES`、`toughness`）
 - 部位を間違えて拭いたときのペナルティ（今はそもそも判定していない）
-- 歴代ランキングを出すか（出すなら D1 を足す）

@@ -68,7 +68,43 @@ export type RoomState = {
 	finishedAt: number | null;
 	// チームごとのタイム（ms）。まだ遊んでいなければ null
 	results: Record<Team, number | null>;
+	// 結果発表のあと、各チームが名前を付けて保存したか、保存しなかったか（まだ選んでいなければ null）
+	decisions: Record<Team, Decision | null>;
+	// ランキングの上位（結果発表のときに読み込む）
+	ranking: RankEntry[];
+	// 両チームが選び終わったあと、新しいゲームに切り替わる時刻
+	nextGameAt: number | null;
 };
+
+// ランキングに載る記録。id は記録ごとに振るので、同じ名前のチームがいてもかまわない
+export type RankEntry = { id: string; name: string; timeMs: number };
+
+export type Decision = { type: "saved"; id: string; name: string; rank: number } | { type: "skipped" };
+
+// ランキングに出す数
+export const RANKING_SIZE = 10;
+
+// チーム名の最大文字数（プロジェクターに映すので短めに）
+export const TEAM_NAME_MAX = 12;
+
+// 両チームが選び終わってから、新しいゲームに切り替わるまで（ランキングを見る時間）
+export const NEXT_GAME_SECONDS = 10;
+
+// チーム名を整える。前後の空白・改行などの制御文字を取り、長すぎたら切る。空なら null
+export function normalizeTeamName(name: unknown): string | null {
+	if (typeof name !== "string") return null;
+	const cleaned = name
+		.replace(/\p{Cc}/gu, "")
+		.replace(/\s+/g, " ")
+		.trim();
+	const chars = Array.from(cleaned).slice(0, TEAM_NAME_MAX).join("").trim();
+	return chars === "" ? null : chars;
+}
+
+// 両チームとも終わった（結果発表の）状態か
+export function isFinalResult(state: RoomState): boolean {
+	return state.phase === "finished" && state.team === "B";
+}
 
 export type ClientMessage =
 	// プレイ画面から
@@ -77,12 +113,14 @@ export type ClientMessage =
 	| { type: "cleared" }
 	// A チームが終わったあとに B チームの番にする
 	| { type: "next" }
-	// ゲームを最初（A チームの lobby）からやり直す
-	| { type: "reset" }
 	// 指示役から
 	| { type: "rotate"; dish: number; direction: 1 | -1 }
 	// 2枚の皿の部位を入れ替える
-	| { type: "swap"; a: number; b: number };
+	| { type: "swap"; a: number; b: number }
+	// 結果発表のあと、チーム名を付けてランキングに保存する / 保存しない。
+	// 両チームが選んだら新しいゲームに進む（プレイ画面からは進めない）
+	| { type: "save"; name: string }
+	| { type: "skip" };
 
 export type ServerMessage = { type: "state"; state: RoomState; now: number };
 
@@ -97,6 +135,9 @@ export function initialState(): RoomState {
 		startedAt: null,
 		finishedAt: null,
 		results: { A: null, B: null },
+		decisions: { A: null, B: null },
+		ranking: [],
+		nextGameAt: null,
 	};
 }
 

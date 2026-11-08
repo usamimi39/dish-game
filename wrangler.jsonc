@@ -10,8 +10,15 @@
 		"run_worker_first": ["/parties/*"]
 	},
 	"durable_objects": {
-		"bindings": [{ "name": "GameRoom", "class_name": "GameRoom" }]
+		"bindings": [
+			{ "name": "GameRoom", "class_name": "GameRoom" },
+			// ルームをまたいだランキング（インスタンスは 1 つだけ）
+			{ "name": "Leaderboard", "class_name": "Leaderboard" }
+		]
 	},
-	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] }],
+	"migrations": [
+		{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] },
+		{ "tag": "v2", "new_sqlite_classes": ["Leaderboard"] }
+	],
 	"observability": { "enabled": true }
 }

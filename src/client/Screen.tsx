@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { BODY_PART_LABELS, type DirtSpec, directorPath, type RoomState, SPONGES, TEAMS, winner } from "../shared/game";
+import {
+	BODY_PART_LABELS,
+	type DirtSpec,
+	directorPath,
+	RANKING_SIZE,
+	type RoomState,
+	SPONGES,
+	TEAMS,
+	winner,
+} from "../shared/game";
 import { DishCanvas, type DishInput } from "./DishCanvas";
 import { DishPreview } from "./DishPreview";
 import { DwellButton } from "./DwellButton";
 import { FullscreenButton } from "./FullscreenButton";
 import { QrCode } from "./QrCode";
 import { getSettings } from "./tracking/settings";
-import type { Tracker } from "./tracking/tracker";
 import { useTracker } from "./tracking/useTracker";
 import { formatTime, useCountdown, useElapsed, useRoom } from "./useRoom";
 
@@ -23,6 +31,7 @@ export function Screen({ room }: { room: string }) {
 	const { state, send, serverNow } = useRoom(room);
 	const elapsed = useElapsed(state, serverNow);
 	const setupLeft = useCountdown(state?.phase === "setup" ? state.setupEndsAt : null, serverNow);
+	const nextGameLeft = useCountdown(state?.nextGameAt ?? null, serverNow);
 	const { tracker, error: cameraError } = useTracker(cameraMode, getSettings().deviceId);
 	const leaving = useLeavingDish(state);
 
@@ -128,33 +137,66 @@ export function Screen({ room }: { room: string }) {
 						<p className="result-time">{formatTime(elapsed)}</p>
 					</div>
 				) : (
-					<Scoreboard results={state.results} tracker={tracker} onRestart={() => send({ type: "reset" })} />
+					<Scoreboard state={state} nextGameLeft={nextGameLeft} />
 				))}
 		</main>
 	);
 }
 
-// 両チームが終わったあとの結果。タイムが短いほうの勝ち
-type ScoreboardProps = { results: RoomState["results"]; tracker: Tracker | null; onRestart: () => void };
-
-function Scoreboard({ results, tracker, onRestart }: ScoreboardProps) {
+// 両チームが終わったあとの結果とランキング。タイムが短いほうの勝ち
+// 新しいゲームへは、両チームの指示役がスマホで「保存する / 保存しない」を選ぶと進む（ここからは進めない）
+function Scoreboard({ state, nextGameLeft }: { state: RoomState; nextGameLeft: number }) {
+	const { results, decisions, ranking } = state;
 	const won = winner(results);
+	const ours = new Set(TEAMS.map((t) => decisions[t]).flatMap((d) => (d?.type === "saved" ? [d.id] : [])));
+
 	return (
-		<div className="result">
-			<div className="result-actions">
-				<DwellButton tracker={tracker} onActivate={onRestart}>
-					新しいゲーム
-				</DwellButton>
+		<div className="final-board">
+			<div className="result">
+				<p className="result-winner">{won === "draw" ? "引き分け！" : `${won}チームの勝ち！`}</p>
+				<ol className="scoreboard">
+					{TEAMS.map((team) => {
+						const decision = decisions[team];
+						return (
+							<li key={team} className={team === won ? "score score-won" : "score"}>
+								<span className="score-team">
+									{decision?.type === "saved" ? decision.name : `${team}チーム`}
+									<span className="score-status">
+										{decision === null
+											? "スマホでチーム名を入力中…"
+											: decision.type === "saved"
+												? `${team}チーム・ランキング ${decision.rank}位`
+												: `${team}チーム・保存しない`}
+									</span>
+								</span>
+								<span className="score-time">{formatTime(results[team] ?? 0)}</span>
+							</li>
+						);
+					})}
+				</ol>
+				<p className="next-game">
+					{state.nextGameAt === null
+						? "両チームがスマホで選ぶと、新しいゲームが始まります"
+						: `${Math.ceil(nextGameLeft / 1000)}秒後に新しいゲーム`}
+				</p>
 			</div>
-			<p className="result-winner">{won === "draw" ? "引き分け！" : `${won}チームの勝ち！`}</p>
-			<ol className="scoreboard">
-				{TEAMS.map((team) => (
-					<li key={team} className={team === won ? "score score-won" : "score"}>
-						<span className="score-team">{team}チーム</span>
-						<span className="score-time">{formatTime(results[team] ?? 0)}</span>
-					</li>
-				))}
-			</ol>
+
+			<section className="ranking">
+				<h2 className="ranking-title">ランキング TOP{RANKING_SIZE}</h2>
+				{ranking.length === 0 ? (
+					<p className="ranking-empty">まだ記録がありません</p>
+				) : (
+					<ol className="ranking-list">
+						{ranking.map((entry, i) => (
+							<li key={entry.id} className={ours.has(entry.id) ? "ranking-row ranking-row-new" : "ranking-row"}>
+								<span className="ranking-rank">{i + 1}</span>
+								<span className="ranking-name">{entry.name}</span>
+								<span className="ranking-time">{formatTime(entry.timeMs)}</span>
+							</li>
+						))}
+					</ol>
+				)}
+			</section>
 		</div>
 	);
 }

@@ -3,8 +3,10 @@ import {
 	BODY_PART_LABELS,
 	type ClientMessage,
 	directorPath,
+	isFinalResult,
 	type RoomState,
 	SPONGES,
+	TEAM_NAME_MAX,
 	TEAMS,
 	type Team,
 	winner,
@@ -52,7 +54,16 @@ function TeamDirector({ room, team }: { room: string; team: Team }) {
 
 	const badge = <p className="director-team">{team}チームの指示役</p>;
 
-	if (state.team !== team || (state.phase === "finished" && team === "B")) {
+	if (isFinalResult(state)) {
+		return (
+			<main className="director">
+				{badge}
+				<FinalResult state={state} team={team} send={send} />
+			</main>
+		);
+	}
+
+	if (state.team !== team) {
 		return (
 			<main className="director">
 				{badge}
@@ -258,9 +269,6 @@ function SetupList({ state, send }: { state: RoomState; send: (message: ClientMe
 
 // 自分のチームが操作できないあいだに出す。相手の番の進み具合と、ここまでの結果
 function TurnStatus({ state, team, elapsed }: { state: RoomState; team: Team; elapsed: number }) {
-	const won = winner(state.results);
-	if (won) return <FinalResult results={state.results} team={team} won={won} />;
-
 	return (
 		<>
 			<p className="director-wait">
@@ -278,10 +286,13 @@ function TurnStatus({ state, team, elapsed }: { state: RoomState; team: Team; el
 	);
 }
 
-// 両チームが終わったあとの結果。勝ったチームには紙吹雪
-type FinalResultProps = { results: RoomState["results"]; team: Team; won: Team | "draw" };
+// 両チームが終わったあとの結果。勝ったチームには紙吹雪。
+// チーム名を付けてランキングに保存するか、保存しないかを選ぶ。両チームが選ぶと新しいゲームに進む
+type FinalResultProps = { state: RoomState; team: Team; send: (message: ClientMessage) => void };
 
-function FinalResult({ results, team, won }: FinalResultProps) {
+function FinalResult({ state, team, send }: FinalResultProps) {
+	const { results } = state;
+	const won = winner(results) ?? "draw";
 	const outcome = won === "draw" ? "draw" : won === team ? "win" : "lose";
 	const gap = Math.abs((results.A ?? 0) - (results.B ?? 0));
 	return (
@@ -293,7 +304,74 @@ function FinalResult({ results, team, won }: FinalResultProps) {
 			</p>
 			{outcome !== "draw" && <p className="final-gap">{(gap / 1000).toFixed(2)} 秒差</p>}
 			<ScoreCards results={results} team={team} won={won} />
+			<SaveForm state={state} team={team} send={send} />
 		</section>
+	);
+}
+
+// チーム名を入力してランキングに保存する。保存しないこともできる
+function SaveForm({ state, team, send }: FinalResultProps) {
+	const [name, setName] = useState("");
+	const [sent, setSent] = useState(false);
+	const decision = state.decisions[team];
+	const other = TEAMS.find((t) => t !== team)!;
+	const waiting = state.decisions[other] === null;
+
+	if (decision) {
+		return (
+			<div className="save-done">
+				<p className="save-done-title">
+					{decision.type === "saved"
+						? `「${decision.name}」でランキング ${decision.rank}位に保存しました！`
+						: "今回は保存しませんでした"}
+				</p>
+				<p className="save-done-note">
+					{waiting ? `${other}チームが選ぶのを待っています…` : "まもなく新しいゲームが始まります"}
+				</p>
+			</div>
+		);
+	}
+
+	const trimmed = name.trim();
+	return (
+		<form
+			className="save-form"
+			onSubmit={(e) => {
+				e.preventDefault();
+				if (!trimmed || sent) return;
+				setSent(true);
+				send({ type: "save", name: trimmed });
+			}}
+		>
+			<label className="save-label" htmlFor="team-name">
+				チーム名を入力して、ランキングに保存しよう
+			</label>
+			<input
+				id="team-name"
+				className="save-input"
+				value={name}
+				onChange={(e) => setName(e.target.value)}
+				placeholder={`チーム名（${TEAM_NAME_MAX}文字まで）`}
+				maxLength={TEAM_NAME_MAX}
+				autoComplete="off"
+				enterKeyHint="done"
+				disabled={sent}
+			/>
+			<button type="submit" className="button button-large" disabled={!trimmed || sent}>
+				保存する
+			</button>
+			<button
+				type="button"
+				className="button button-sub"
+				disabled={sent}
+				onClick={() => {
+					setSent(true);
+					send({ type: "skip" });
+				}}
+			>
+				保存しない
+			</button>
+		</form>
 	);
 }
 

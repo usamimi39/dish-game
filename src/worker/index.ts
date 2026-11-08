@@ -4,6 +4,10 @@ import {
 	createDishes,
 	DISH_COUNT,
 	initialState,
+	isFinalResult,
+	NEXT_GAME_SECONDS,
+	normalizeTeamName,
+	RANKING_SIZE,
 	type RoomState,
 	SETUP_SECONDS,
 	type ServerMessage,
@@ -11,11 +15,15 @@ import {
 	type Team,
 } from "../shared/game";
 
+export { Leaderboard } from "./leaderboard";
+
 // 1ルーム = 1試合。ゲームの進行をまとめて、つながっている画面すべてに配る
 export class GameRoom extends Server<Env> {
 	static options = { hibernate: true };
 
 	state: RoomState = initialState();
+	// 名前を保存している途中のチーム（ランキングへの書き込みを待つあいだに、同じチームから二重に保存されないように）
+	private saving = new Set<Team>();
 
 	async onStart() {
 		const saved = await this.ctx.storage.get<RoomState>("state");
@@ -29,19 +37,71 @@ export class GameRoom extends Server<Env> {
 
 	async onMessage(connection: Connection, raw: WSMessage) {
 		if (typeof raw !== "string") return;
-		if (this.apply(JSON.parse(raw) as ClientMessage, teamOf(connection))) await this.commit();
+		let message: ClientMessage;
+		try {
+			message = JSON.parse(raw) as ClientMessage;
+		} catch {
+			return;
+		}
+		const team = teamOf(connection);
+		if (message.type === "save" || message.type === "skip") {
+			if (await this.decide(message, team)) await this.commit();
+			return;
+		}
+		if (!this.apply(message, team)) return;
+		// 結果発表になったら、ランキングを読み込んでから配る
+		if (isFinalResult(this.state) && this.state.ranking.length === 0) await this.loadRanking();
+		await this.commit();
 	}
 
-	// セッティングの時間切れ。その時の向きと部位で確定して、プレイを始める
+	// アラームは 2 種類：セッティングの時間切れと、結果発表のあとの新しいゲームへの切り替え
 	async onAlarm() {
-		if (this.state.phase !== "setup") return;
-		this.state = {
-			...this.state,
-			phase: "playing",
-			remaining: Array(DISH_COUNT).fill(1),
-			startedAt: Date.now(),
-		};
-		await this.commit();
+		const s = this.state;
+		if (s.phase === "setup") {
+			// その時の向きと部位で確定して、プレイを始める
+			this.state = { ...s, phase: "playing", remaining: Array(DISH_COUNT).fill(1), startedAt: Date.now() };
+			await this.commit();
+		} else if (isFinalResult(s) && s.nextGameAt !== null) {
+			this.state = initialState();
+			await this.commit();
+		}
+	}
+
+	// 結果発表のあと、チーム名を付けて保存する / 保存しない。両チームが選んだら、少ししてから新しいゲームへ
+	private async decide(message: ClientMessage & { type: "save" | "skip" }, team: Team | null): Promise<boolean> {
+		if (!team || !isFinalResult(this.state) || this.state.decisions[team] || this.saving.has(team)) return false;
+		const timeMs = this.state.results[team];
+		if (timeMs === null) return false;
+
+		if (message.type === "skip") {
+			this.state.decisions[team] = { type: "skipped" };
+		} else {
+			const name = normalizeTeamName(message.name);
+			if (!name) return false;
+			this.saving.add(team);
+			try {
+				const { id, rank } = await this.leaderboard().save({ name, timeMs, team, room: this.name });
+				this.state.decisions[team] = { type: "saved", id, name, rank };
+			} finally {
+				this.saving.delete(team);
+			}
+			await this.loadRanking();
+		}
+
+		if (TEAMS.every((t) => this.state.decisions[t] !== null)) {
+			const nextGameAt = Date.now() + NEXT_GAME_SECONDS * 1000;
+			this.state.nextGameAt = nextGameAt;
+			await this.ctx.storage.setAlarm(nextGameAt);
+		}
+		return true;
+	}
+
+	private async loadRanking() {
+		this.state.ranking = await this.leaderboard().top(RANKING_SIZE);
+	}
+
+	private leaderboard() {
+		return this.env.Leaderboard.get(this.env.Leaderboard.idFromName("global"));
 	}
 
 	// メッセージを状態に反映する。受け付けなかったら false
@@ -99,10 +159,8 @@ export class GameRoom extends Server<Env> {
 				if (s.phase !== "finished" || s.team !== "A") return false;
 				this.state = { ...initialState(), team: "B", results: s.results };
 				return true;
-			case "reset":
-				this.state = initialState();
-				void this.ctx.storage.deleteAlarm();
-				return true;
+			default:
+				return false;
 		}
 	}
 

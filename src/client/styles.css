@@ -1143,3 +1143,150 @@ body {
 		display: none;
 	}
 }
+
+/* 結果発表（プレイ画面）：左に勝敗とタイム、右にランキング */
+.final-board {
+	display: grid;
+	grid-template-columns: auto 60vh;
+	gap: 6vh;
+	align-items: center;
+	margin: auto 0;
+}
+
+.score-team {
+	display: grid;
+	text-align: left;
+}
+
+.score-status {
+	color: var(--sub);
+	font-size: 2.2vh;
+	font-weight: 400;
+}
+
+.result .next-game {
+	margin-top: 4vh;
+	color: var(--sub);
+	font-size: 2.6vh;
+}
+
+.ranking {
+	padding: 3vh;
+	border-radius: 2vh;
+	background: #fff;
+	box-shadow: 0 0.5vh 2vh rgb(0 0 0 / 0.08);
+}
+
+.ranking-title {
+	margin: 0 0 2vh;
+	font-size: 3.4vh;
+	text-align: center;
+}
+
+.ranking-empty {
+	margin: 4vh 0;
+	color: var(--sub);
+	font-size: 2.6vh;
+	text-align: center;
+}
+
+.ranking-list {
+	display: grid;
+	gap: 0.6vh;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ranking-row {
+	display: grid;
+	grid-template-columns: 5vh 1fr auto;
+	gap: 2vh;
+	align-items: baseline;
+	padding: 0.8vh 1.6vh;
+	border-radius: 1vh;
+	font-size: 2.8vh;
+}
+
+/* 今回のゲームで保存した記録 */
+.ranking-row-new {
+	background: #fff4b8;
+	animation: ranking-in 0.6s ease-out;
+}
+
+.ranking-rank {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+/* 上位 3 つは順位の数字を目立たせる */
+.ranking-row:nth-child(-n + 3) .ranking-rank {
+	color: var(--accent);
+	font-weight: 800;
+}
+
+.ranking-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ranking-time {
+	font-variant-numeric: tabular-nums;
+}
+
+@keyframes ranking-in {
+	from {
+		background: var(--accent);
+	}
+}
+
+/* 指示役のチーム名の入力 */
+.save-form {
+	display: grid;
+	gap: 10px;
+	width: 100%;
+	margin-top: 20px;
+	padding: 16px;
+	border-radius: 16px;
+	background: #fff;
+	text-align: left;
+}
+
+.save-label {
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.save-input {
+	padding: 12px;
+	border: 2px solid var(--muted);
+	border-radius: 12px;
+	font: inherit;
+	/* 16px 未満だと iPhone が勝手に拡大する */
+	font-size: 18px;
+}
+
+.save-input:focus {
+	border-color: var(--accent);
+	outline: none;
+}
+
+.save-done {
+	width: 100%;
+	margin-top: 20px;
+	padding: 16px;
+	border-radius: 16px;
+	background: #fff;
+}
+
+.save-done-title {
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.final .save-done-note {
+	margin-top: 6px;
+	color: var(--sub);
+	font-size: 14px;
+}
