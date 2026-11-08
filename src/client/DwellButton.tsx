@@ -1,18 +1,21 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { SPONGES } from "../shared/game";
 import { getSettings } from "./tracking/settings";
 import { pickDetection, type Tracker } from "./tracking/tracker";
 
 // 画面が出てすぐはボタンを押せない（最後の皿を洗っていた手がたまたま重なって、勝手に進まないように）
 const ARM_MS = 1500;
+// ボタンは頭（赤）のマーカーだけで押す。5色の中で赤がいちばん認識しやすく、ほかの部位が映り込んでも誤って押されない
+const HEAD = SPONGES.findIndex((s) => s.part === "head");
 // マーカーをボタンに重ね続けたら押したことにする時間
 const DWELL_MS = 2000;
 // カーソルのブレを抑える（1 に近いほどなめらかだけど遅れる）
 const SMOOTHING = 0.5;
 
-type Props = { tracker: Tracker | null; onActivate: () => void; children: ReactNode; sponge?: number | "any" };
+type Props = { tracker: Tracker | null; onActivate: () => void; children: ReactNode };
 
-// カメラモードでは、マーカーを重ね続けると押せるボタン（sponge で色を絞れる）。マウスのクリックでも押せる
-export function DwellButton({ tracker, onActivate, children, sponge = "any" }: Props) {
+// カメラモードでは、頭のマーカーを重ね続けると押せるボタン。マウスのクリックでも押せる
+export function DwellButton({ tracker, onActivate, children }: Props) {
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const cursorRef = useRef<HTMLDivElement>(null);
 	const activate = useRef(onActivate);
@@ -30,7 +33,7 @@ export function DwellButton({ tracker, onActivate, children, sponge = "any" }: P
 
 		return tracker.subscribe(({ detections }) => {
 			if (done) return;
-			const found = pickDetection(detections, sponge);
+			const found = pickDetection(detections, HEAD);
 			if (!found) {
 				point = null;
 				enteredAt = null;
@@ -67,7 +70,7 @@ export function DwellButton({ tracker, onActivate, children, sponge = "any" }: P
 				activate.current();
 			}
 		});
-	}, [tracker, sponge]);
+	}, [tracker]);
 
 	return (
 		<>

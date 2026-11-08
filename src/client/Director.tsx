@@ -78,7 +78,8 @@ function TeamDirector({ room, team }: { room: string; team: Team }) {
 				<h1 className="director-title">お皿のセッティング</h1>
 				<p className="director-countdown">{Math.ceil(setupLeft / 1000)}秒</p>
 				<p className="director-hint">
-					皿を回して、色のブロックを入れ替えて部位を決めよう。時間切れになったときの状態で決まります
+					色のブロックをつかんで、別の皿へドラッグすると部位が入れ替わるよ（2つタップでもOK）。↺ ↻
+					で皿を回そう。時間切れのときの状態で決まります
 				</p>
 				<SetupList state={state} send={send} />
 			</main>
@@ -170,13 +171,19 @@ function SetupList({ state, send }: { state: RoomState; send: (message: ClientMe
 		const dx = e.clientX - drag.startX;
 		const dy = e.clientY - drag.startY;
 		const moved = drag.moved || Math.hypot(dx, dy) > DRAG_START;
-		setDrag({ ...drag, dx, dy, moved, over: moved ? rowAt(e.clientY) : drag.over });
+		const over = moved ? rowAt(e.clientY) : drag.over;
+		// つかんだ瞬間と、別の皿の上に来たときに軽く震わせる（対応している端末だけ）
+		if ((moved && !drag.moved) || (moved && over !== drag.over && over !== null)) buzz();
+		setDrag({ ...drag, dx, dy, moved, over });
 	};
 
 	const onPointerUp = () => {
 		if (!drag) return;
 		if (drag.moved) {
-			if (drag.over !== null) swap(drag.from, drag.over);
+			if (drag.over !== null && drag.over !== drag.from) {
+				swap(drag.from, drag.over);
+				buzz(20);
+			}
 			setSelected(null);
 		} else if (selected === null) {
 			setSelected(drag.from);
@@ -188,7 +195,7 @@ function SetupList({ state, send }: { state: RoomState; send: (message: ClientMe
 	};
 
 	return (
-		<ol className="setup-list">
+		<ol className={drag?.moved ? "setup-list setup-list-dragging" : "setup-list"}>
 			{state.dishes.map((dish, i) => {
 				const sponge = SPONGES[dish.sponge];
 				const dragging = drag?.moved && drag.from === i;
@@ -208,16 +215,22 @@ function SetupList({ state, send }: { state: RoomState; send: (message: ClientMe
 							className={["part-block", selected === i && "part-block-selected", dragging && "part-block-dragging"]
 								.filter(Boolean)
 								.join(" ")}
-							style={{
-								background: sponge.color,
-								transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined,
-							}}
+							style={
+								{
+									background: sponge.color,
+									// 持ち上げて少し傾けると「つかんでいる」感じが出る
+									transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px) rotate(-3deg) scale(1.08)` : undefined,
+									// セッティングが始まったとき、ブロックが順番に揺れて「動かせる」ことを知らせる
+									"--i": i,
+								} as React.CSSProperties
+							}
 							aria-label={`${i + 1}皿目の部位：${BODY_PART_LABELS[sponge.part]}`}
 							onPointerDown={onPointerDown(i)}
 							onPointerMove={onPointerMove}
 							onPointerUp={onPointerUp}
 							onPointerCancel={() => setDrag(null)}
 						>
+							<span className="part-grip" aria-hidden="true" />
 							{BODY_PART_LABELS[sponge.part]}
 						</button>
 						<div className="rotate-buttons">
@@ -245,29 +258,87 @@ function SetupList({ state, send }: { state: RoomState; send: (message: ClientMe
 
 // 自分のチームが操作できないあいだに出す。相手の番の進み具合と、ここまでの結果
 function TurnStatus({ state, team, elapsed }: { state: RoomState; team: Team; elapsed: number }) {
-	const other = state.team;
 	const won = winner(state.results);
-
-	let message: string;
-	if (won) message = won === "draw" ? "引き分け！" : won === team ? "勝ち！おめでとう！" : "負けちゃった…";
-	else if (team === "B") message = "いまは A チームの番です。B チームの番まで待っててね";
-	else message = "A チームの番は終わりました。B チームの番を見守ろう";
+	if (won) return <FinalResult results={state.results} team={team} won={won} />;
 
 	return (
 		<>
-			<p className="director-wait">{message}</p>
-			{!won && state.phase === "playing" && (
+			<p className="director-wait">
+				{team === "B"
+					? "いまは A チームの番です。B チームの番まで待っててね"
+					: "A チームの番は終わりました。B チームの番を見守ろう"}
+			</p>
+			{state.phase === "playing" && (
 				<p className="director-timer">
-					{other}チーム {formatTime(elapsed)}
+					{state.team}チーム {formatTime(elapsed)}
 				</p>
 			)}
-			<ol className="director-results">
-				{TEAMS.map((t) => (
-					<li key={t}>
-						{t}チーム：{state.results[t] === null ? "まだ" : formatTime(state.results[t])}
-					</li>
-				))}
-			</ol>
+			<ScoreCards results={state.results} team={team} won={null} />
 		</>
 	);
+}
+
+// 両チームが終わったあとの結果。勝ったチームには紙吹雪
+type FinalResultProps = { results: RoomState["results"]; team: Team; won: Team | "draw" };
+
+function FinalResult({ results, team, won }: FinalResultProps) {
+	const outcome = won === "draw" ? "draw" : won === team ? "win" : "lose";
+	const gap = Math.abs((results.A ?? 0) - (results.B ?? 0));
+	return (
+		<section className={`final final-${outcome}`}>
+			{outcome === "win" && <Confetti />}
+			<p className="final-label">{outcome === "win" ? "WIN!" : outcome === "lose" ? "LOSE" : "DRAW"}</p>
+			<p className="final-message">
+				{outcome === "win" ? "勝ち！おめでとう！" : outcome === "lose" ? "負けちゃった…" : "引き分け！"}
+			</p>
+			{outcome !== "draw" && <p className="final-gap">{(gap / 1000).toFixed(2)} 秒差</p>}
+			<ScoreCards results={results} team={team} won={won} />
+		</section>
+	);
+}
+
+// 2チームのタイムを横に並べる。自分のチームと勝ったチームに印を付ける
+function ScoreCards({ results, team, won }: { results: RoomState["results"]; team: Team; won: Team | "draw" | null }) {
+	return (
+		<ol className="score-cards">
+			{TEAMS.map((t) => (
+				<li key={t} className={t === won ? "score-card score-card-won" : "score-card"}>
+					{t === won && <span className="score-card-crown">WINNER</span>}
+					<span className="score-card-team">{t}チーム</span>
+					<span className="score-card-time">{results[t] === null ? "--:--:--" : formatTime(results[t])}</span>
+					{t === team && <span className="score-card-you">あなたのチーム</span>}
+				</li>
+			))}
+		</ol>
+	);
+}
+
+// 部位の 5 色で紙吹雪を降らせる。位置と速さは番号から決めるので、描き直しても変わらない
+const CONFETTI_COUNT = 30;
+
+function Confetti() {
+	return (
+		<div className="confetti" aria-hidden="true">
+			{Array.from({ length: CONFETTI_COUNT }, (_, i) => (
+				<span
+					// biome-ignore lint/suspicious/noArrayIndexKey: 数が変わらない飾り
+					key={i}
+					style={
+						{
+							background: SPONGES[i % SPONGES.length].color,
+							left: `${(i * 37) % 100}%`,
+							"--delay": `${((i * 7) % 20) / 10}s`,
+							"--duration": `${2.4 + ((i * 13) % 10) / 10}s`,
+							"--drift": `${((i * 29) % 60) - 30}px`,
+						} as React.CSSProperties
+					}
+				/>
+			))}
+		</div>
+	);
+}
+
+// 指示役のスマホを短く震わせる（Android の Chrome など、対応している端末だけ）
+function buzz(ms = 10) {
+	navigator.vibrate?.(ms);
 }

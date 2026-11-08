@@ -1,3 +1,42 @@
+/* フォント（public/fonts。どちらも SIL Open Font License）
+   英数字は Winky Sans、日本語は Kiwi Maru。Kiwi Maru は Medium までなので、太字も Medium で出す（にせの太字を作らせない） */
+@font-face {
+	font-family: "Winky Sans";
+	src: url("/fonts/WinkySans-VariableFont_wght.woff2") format("woff2");
+	font-weight: 300 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Winky Sans";
+	src: url("/fonts/WinkySans-Italic-VariableFont_wght.woff2") format("woff2");
+	font-weight: 300 900;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Kiwi Maru";
+	src: url("/fonts/KiwiMaru-Light.woff2") format("woff2");
+	font-weight: 100 300;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Kiwi Maru";
+	src: url("/fonts/KiwiMaru-Regular.woff2") format("woff2");
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Kiwi Maru";
+	src: url("/fonts/KiwiMaru-Medium.woff2") format("woff2");
+	font-weight: 500 900;
+	font-display: swap;
+}
+
 :root {
 	--bg: #fbf7ef;
 	--ink: #2b2b2b;
@@ -5,7 +44,7 @@
 	--accent: #3b8fd9;
 	--muted: #e2e2e2;
 	--done: #5cbf7a;
-	font-family: system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
+	font-family: "Winky Sans", "Kiwi Maru", system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
 	color: var(--ink);
 	background: var(--bg);
 }
@@ -301,16 +340,6 @@ body {
 	color: #fff;
 	font-size: 14px;
 	font-weight: 700;
-}
-
-.director-results {
-	display: grid;
-	gap: 8px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	font-size: 20px;
-	font-variant-numeric: tabular-nums;
 }
 
 .team-picker {
@@ -709,6 +738,10 @@ body {
 }
 
 .part-block {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	justify-content: center;
 	width: 100%;
 	min-height: 46px;
 	padding: 6px 8px;
@@ -723,6 +756,13 @@ body {
 	/* ブロックを掴んでいる間は、画面をスクロールさせない */
 	touch-action: none;
 	user-select: none;
+	/* 下に厚みを付けて、つかめるブロックに見せる */
+	box-shadow: 0 4px 0 rgb(0 0 0 / 0.28);
+	/* セッティングが始まったとき、ブロックが順番に揺れて「動かせる」ことを知らせる */
+	animation: part-wiggle 0.5s calc(0.3s + var(--i, 0) * 0.12s) ease-in-out 2;
+	transition:
+		transform 0.12s,
+		box-shadow 0.12s;
 }
 
 .part-block-static {
@@ -738,13 +778,17 @@ body {
 	box-shadow:
 		0 0 0 3px #fff,
 		0 0 0 6px var(--ink);
+	animation: part-bounce 0.6s ease-in-out infinite;
 }
 
+/* ドラッグ中のブロックは、指より上に浮いて見える */
 .part-block-dragging {
 	position: relative;
 	z-index: 10;
-	box-shadow: 0 8px 20px rgb(0 0 0 / 0.3);
+	box-shadow: 0 14px 24px rgb(0 0 0 / 0.35);
 	cursor: grabbing;
+	animation: none;
+	transition: none;
 }
 
 /* プレイ画面の「この皿はこの部位」 */
@@ -896,4 +940,206 @@ body {
 
 .screen-top .result-actions {
 	margin: 0 0 4vh;
+}
+
+/* 部位のブロックを「つかめそう」に見せる：左の持ち手（点々）、押し込み、ドラッグ中の置き場所 */
+.part-block:active {
+	transform: translateY(2px);
+	box-shadow: 0 2px 0 rgb(0 0 0 / 0.28);
+}
+
+.part-grip {
+	flex: none;
+	width: 10px;
+	height: 18px;
+	background: radial-gradient(circle, rgb(255 255 255 / 0.9) 1.6px, transparent 2px) 0 0 / 5px 6px;
+	filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.5));
+}
+
+.part-block-static .part-grip {
+	display: none;
+}
+
+.part-block-static {
+	box-shadow: none;
+	animation: none;
+}
+
+/* ドラッグ中は、ほかのブロックを「ここに置ける」枠で囲む */
+.setup-list-dragging .part-block:not(.part-block-dragging) {
+	outline: 2px dashed var(--sub);
+	outline-offset: 3px;
+	opacity: 0.75;
+}
+
+.setup-list-dragging .setup-item-target .part-block {
+	outline: 3px solid var(--accent);
+	opacity: 1;
+	transform: scale(1.05);
+}
+
+@keyframes part-wiggle {
+	0%,
+	100% {
+		transform: none;
+	}
+	25% {
+		transform: rotate(-4deg);
+	}
+	75% {
+		transform: rotate(4deg);
+	}
+}
+
+@keyframes part-bounce {
+	50% {
+		transform: translateY(-3px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.part-block,
+	.part-block-selected {
+		animation: none;
+	}
+}
+
+/* 指示役のスコア（2チームを横に並べる） */
+.score-cards {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+	width: 100%;
+	margin: 16px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.score-card {
+	position: relative;
+	display: grid;
+	gap: 4px;
+	justify-items: center;
+	padding: 20px 8px 14px;
+	border-radius: 16px;
+	background: #fff;
+	box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+.score-card-won {
+	outline: 3px solid var(--accent);
+}
+
+.score-card-crown {
+	position: absolute;
+	top: -12px;
+	padding: 2px 12px;
+	border-radius: 999px;
+	background: var(--accent);
+	color: #fff;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+}
+
+.score-card-team {
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.score-card-time {
+	font-size: 26px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.score-card-you {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--ink);
+	color: #fff;
+	font-size: 11px;
+}
+
+/* 指示役の最終結果 */
+.final {
+	position: relative;
+	display: grid;
+	justify-items: center;
+	gap: 4px;
+	width: 100%;
+	margin-top: 8vh;
+	text-align: center;
+}
+
+.final p {
+	margin: 0;
+}
+
+.final-label {
+	font-size: 72px;
+	font-weight: 900;
+	font-style: italic;
+	line-height: 1;
+	animation: final-pop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) backwards;
+}
+
+.final-win .final-label {
+	color: var(--accent);
+	text-shadow: 0 4px 0 rgb(0 0 0 / 0.12);
+}
+
+.final-lose .final-label {
+	color: var(--sub);
+}
+
+.final-draw .final-label {
+	color: var(--done);
+}
+
+.final-message {
+	font-size: 22px;
+	font-weight: 700;
+}
+
+.final-gap {
+	color: var(--sub);
+	font-size: 14px;
+	font-variant-numeric: tabular-nums;
+}
+
+@keyframes final-pop {
+	from {
+		transform: scale(0.3);
+		opacity: 0;
+	}
+}
+
+/* 勝ったときの紙吹雪。画面の上から降らせる */
+.confetti {
+	position: fixed;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.confetti span {
+	position: absolute;
+	top: -20px;
+	width: 8px;
+	height: 14px;
+	border-radius: 2px;
+	animation: confetti-fall var(--duration) var(--delay) linear infinite;
+}
+
+@keyframes confetti-fall {
+	to {
+		transform: translate(var(--drift), 105vh) rotate(720deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.confetti {
+		display: none;
+	}
 }

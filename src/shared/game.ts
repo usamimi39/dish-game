@@ -28,16 +28,16 @@ export const DISH_COUNT = SPONGES.length;
 export const CLEAR_THRESHOLD = 0.03;
 
 // 指示役が皿を回したり部位を並べ替えたりできる時間。時間切れでその時の状態に決まる
-export const SETUP_SECONDS = 30;
+export const SETUP_SECONDS = 15;
 
 // 汚れは「拡散度 3 段階 × 中心からの距離 3 段階」の 9 パターン。そこから 5 つを選んで使う
 export const SPREAD_LEVELS = 3;
 export const DISTANCE_LEVELS = 3;
 
 export type Dish = {
-	// 拡散度（0 = 1か所にまとまっている … 2 = ばらばら）
+	// 拡散度（0 = 1か所にまとまっている … 2 = 縁に沿って三日月のように広がる）
 	spread: number;
-	// 汚れのかたまりが皿の中心からどれだけ離れているか（0 = 中心 … 2 = 縁）
+	// 汚れが皿の中心からどれだけ離れているか（0 = 中心の少し外 … 2 = 縁）。どれも片側に寄るので、回す意味がある
 	distance: number;
 	// 汚れの細かい形を決める seed
 	seed: number;
@@ -149,32 +149,37 @@ export type DirtPattern = {
 
 export type DirtSpec = Pick<Dish, "seed" | "spread" | "distance" | "rotation">;
 
-// 拡散度ごとの「汚れが散らばる半径」「かたまりの数」「かたまりの大きさ」
+// 拡散度ごとの「汚れが並ぶ弧の広さ（片側の角度・ラジアン）」「弧からのばらつき」「かたまりの数」「かたまりの大きさ」
+// どの拡散度でも汚れは皿の片側に寄せる。真ん中にまとまった汚れは、回しても同じなので作らない
+// 拡散度が大きいほど、汚れは三日月のように縁に沿って広がる
 const SPREADS = [
-	{ radius: 0.08, count: 3, size: [0.14, 0.2] },
-	{ radius: 0.22, count: 6, size: [0.08, 0.13] },
-	{ radius: 0.4, count: 11, size: [0.05, 0.08] },
+	{ arc: 0, jitter: 0.08, count: 3, size: [0.14, 0.2] },
+	{ arc: 0.6, jitter: 0.08, count: 6, size: [0.08, 0.13] },
+	{ arc: 1.2, jitter: 0.1, count: 11, size: [0.05, 0.08] },
 ] as const;
 
-// 距離ごとの、汚れ全体の中心と皿の中心との距離
-const DISTANCES = [0, 0.38, 0.62];
+// 距離ごとの、汚れが並ぶ弧と皿の中心との距離。いちばん近くても中心から外す
+const DISTANCES = [0.3, 0.5, 0.7];
 
 // 皿の中心を原点、内側の半径を 1、下向きを y+ とした座標で汚れを作る。同じ spec なら必ず同じ形になる
-// 回転 0 のとき、中心から離れた汚れは皿の上側に寄る
+// 回転 0 のとき、汚れは皿の上側に寄る
 export function createDirt({ seed, spread, distance, rotation }: DirtSpec): DirtPattern {
 	const random = mulberry32(seed);
-	const { radius, count, size } = SPREADS[spread];
+	const { arc, jitter, count, size } = SPREADS[spread];
 	// 真上から少しだけずらして、毎回同じ見た目にならないようにする
 	const angle = -Math.PI / 2 + (random() - 0.5) * 0.5;
-	const cx = Math.cos(angle) * DISTANCES[distance];
-	const cy = Math.sin(angle) * DISTANCES[distance];
+	const reach = DISTANCES[distance];
 
 	const blobs: DirtBlob[] = [];
 	for (let i = 0; i < count; i++) {
-		const a = random() * Math.PI * 2;
-		const d = Math.sqrt(random()) * radius;
+		// 弧の上のどこか + 少しのばらつき
+		const a = angle + (random() * 2 - 1) * arc;
+		const ja = random() * Math.PI * 2;
+		const jd = Math.sqrt(random()) * jitter;
 		const r = size[0] + random() * (size[1] - size[0]);
-		blobs.push(...lump(cx + Math.cos(a) * d, cy + Math.sin(a) * d, r, random));
+		const x = Math.cos(a) * reach + Math.cos(ja) * jd;
+		const y = Math.sin(a) * reach + Math.sin(ja) * jd;
+		blobs.push(...lump(x, y, r, random));
 	}
 	return { blobs: blobs.map((b) => rotate(fitInside(b), rotation)), toughness: 2 };
 }

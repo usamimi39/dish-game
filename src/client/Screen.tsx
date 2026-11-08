@@ -118,13 +118,14 @@ export function Screen({ room }: { room: string }) {
 			{state.phase === "finished" &&
 				(state.team === "A" ? (
 					<div className="result">
-						<p>Aチーム ぜんぶキレイ！</p>
-						<p className="result-time">{formatTime(elapsed)}</p>
+						{/* 頭のマーカーで押すので、ボタンは画面の上に置く */}
 						<div className="result-actions">
 							<DwellButton tracker={tracker} onActivate={() => send({ type: "next" })}>
 								Bチームの番へ
 							</DwellButton>
 						</div>
+						<p>Aチーム ぜんぶキレイ！</p>
+						<p className="result-time">{formatTime(elapsed)}</p>
 					</div>
 				) : (
 					<Scoreboard results={state.results} tracker={tracker} onRestart={() => send({ type: "reset" })} />
@@ -141,7 +142,7 @@ function Scoreboard({ results, tracker, onRestart }: ScoreboardProps) {
 	return (
 		<div className="result">
 			<div className="result-actions">
-				<DwellButton tracker={tracker} sponge={HEAD} onActivate={onRestart}>
+				<DwellButton tracker={tracker} onActivate={onRestart}>
 					新しいゲーム
 				</DwellButton>
 			</div>
